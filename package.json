@@ -1,0 +1,43 @@
+{
+  "version": "1.0.0",
+  "source": "./index.html",
+  "type": "module",
+  "name": "anima-project",
+  "description": "A React project ",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.1.1",
+    "@mui/material": "^7.1.1",
+    "@radix-ui/react-navigation-menu": "^1.2.1",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "axios": "^1.10.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "2.1.1",
+    "formik": "^2.4.6",
+    "lucide-react": "^0.453.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^6.30.1",
+    "tailwind-merge": "2.5.4",
+    "yup": "^1.6.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
+    "@vitejs/plugin-react": "4.3.4",
+    "esbuild": "0.24.0",
+    "globals": "15.12.0",
+    "tailwindcss": "3.4.16",
+    "vite": "6.0.4"
+  },
+  "alias": {
+    "@/*": "./src/components/ui/$1"
+  }
+}

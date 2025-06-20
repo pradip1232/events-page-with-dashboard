@@ -1,0 +1,43 @@
+span:active {
+  color: white !important;
+}
+
+span {
+  color: white !important;
+}
+
+input {
+  color: white;
+}
+
+input label {
+  color: white !important;
+}
+
+/* white-textfield.css */
+.white-textfield .MuiInputBase-root {
+  color: white !important; /* input text */
+}
+
+.white-textfield label,
+.white-textfield .MuiFormLabel-root {
+  color: white !important; /* label text */
+}
+
+.white-textfield .MuiOutlinedInput-notchedOutline {
+  border-color: white !important; /* default border */
+}
+
+.white-textfield .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: white !important; /* hover border */
+}
+
+.white-textfield
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
+  border-color: white !important; /* focus border */
+}
+
+.white-textfield .MuiFormHelperText-root {
+  color: white !important; /* helper text */
+}

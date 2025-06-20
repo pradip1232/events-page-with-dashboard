@@ -1,0 +1,155 @@
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .all-\[unset\] {
+    all: unset;
+  }
+}
+
+:root {
+  --body-text-font-family: "Poppins", Helvetica;
+  --body-text-font-size: 18px;
+  --body-text-font-style: normal;
+  --body-text-font-weight: 400;
+  --body-text-letter-spacing: 0px;
+  --body-text-line-height: 28px;
+  --body-text-smaller-font-family: "Poppins", Helvetica;
+  --body-text-smaller-font-size: 14px;
+  --body-text-smaller-font-style: normal;
+  --body-text-smaller-font-weight: 400;
+  --body-text-smaller-letter-spacing: 0px;
+  --body-text-smaller-line-height: 25px;
+  --button-text-font-family: "Poppins", Helvetica;
+  --button-text-font-size: 14px;
+  --button-text-font-style: normal;
+  --button-text-font-weight: 400;
+  --button-text-letter-spacing: 0px;
+  --button-text-line-height: 20px;
+  --card-headline-font-family: "Poppins", Helvetica;
+  --card-headline-font-size: 32px;
+  --card-headline-font-style: normal;
+  --card-headline-font-weight: 600;
+  --card-headline-letter-spacing: -1.6px;
+  --card-headline-line-height: 35px;
+  --card-headline-secondary-font-family: "Poppins", Helvetica;
+  --card-headline-secondary-font-size: 24px;
+  --card-headline-secondary-font-style: normal;
+  --card-headline-secondary-font-weight: 600;
+  --card-headline-secondary-letter-spacing: -1.2000000000000002px;
+  --card-headline-secondary-line-height: 32px;
+  --emphasis-taglines-card-font-family: "Poppins", Helvetica;
+  --emphasis-taglines-card-font-size: 16px;
+  --emphasis-taglines-card-font-style: italic;
+  --emphasis-taglines-card-font-weight: 500;
+  --emphasis-taglines-card-letter-spacing: 0px;
+  --emphasis-taglines-card-line-height: 32px;
+  --heading-secondary-font-family: "Poppins", Helvetica;
+  --heading-secondary-font-size: 64px;
+  --heading-secondary-font-style: normal;
+  --heading-secondary-font-weight: 800;
+  --heading-secondary-letter-spacing: 0px;
+  --heading-secondary-line-height: 65px;
+  --headline-font-family: "Poppins", Helvetica;
+  --headline-font-size: 48px;
+  --headline-font-style: normal;
+  --headline-font-weight: 600;
+  --headline-letter-spacing: 0px;
+  --headline-line-height: 80px;
+  --nav-bar-text-font-family: "Poppins", Helvetica;
+  --nav-bar-text-font-size: 14px;
+  --nav-bar-text-font-style: normal;
+  --nav-bar-text-font-weight: 400;
+  --nav-bar-text-letter-spacing: 0px;
+  --nav-bar-text-line-height: 28px;
+  --sub-heading-font-family: "Poppins", Helvetica;
+  --sub-heading-font-size: 20px;
+  --sub-heading-font-style: normal;
+  --sub-heading-font-weight: 500;
+  --sub-heading-letter-spacing: -1px;
+  --sub-heading-line-height: normal;
+  --text: rgba(255, 255, 255, 1);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    --card: transparent;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 215 20.2% 65.1%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 215 20.2% 65.1%;
+
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+
+    --card: transparent;
+    --card-foreground: 213 31% 91%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 1.2%;
+
+    --secondary: 222.2 47.4% 11.2%;
+    --secondary-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 216 34% 17%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
