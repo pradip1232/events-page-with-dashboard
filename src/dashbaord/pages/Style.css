@@ -8,6 +8,7 @@ span {
 
 input {
   color: white;
+  border-color: white!important;
 }
 
 input label {
@@ -40,4 +41,53 @@ input label {
 
 .white-textfield .MuiFormHelperText-root {
   color: white !important; /* helper text */
+}
+
+/* Existing styles from your Style.css */
+.border-gray-700 {
+  border-color: #4b5563;
+}
+
+.bg-gray-800 {
+  background-color: #1f2937;
+}
+
+.text-gray-300 {
+  color: #d1d5db;
+}
+
+.text-pink-500 {
+  color: #ec4899;
+}
+
+.bg-pink-500 {
+  background-color: #ec4899;
+}
+
+.bg-pink-600 {
+  background-color: #db2777;
+}
+
+.text-white {
+  color: #ffffff;
+}
+
+.bg-gray-900 {
+  background-color: #111827;
+}
+
+/* Animation for welcome popup */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
 }

@@ -24,12 +24,20 @@ import {
   Tabs,
   Tab,
   CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import VideoLabelIcon from '@mui/icons-material/VideoLabel';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { stepConnectorClasses } from '@mui/material/StepConnector';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -48,6 +56,7 @@ interface Volunteer {
   email: string;
   level: string;
   password: string;
+  sent: boolean;
 }
 
 interface FormValues {
@@ -207,6 +216,9 @@ const VolunteerTextField = ({
   </TextField>
 );
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost';
+// console.log("API BASE URL ", API_BASE_URL);
+
 // Main Component
 const EventsPage = () => {
   const [activeStep, setActiveStep] = React.useState(0);
@@ -301,7 +313,7 @@ const EventsPage = () => {
         Yup.object({
           volunteers: Yup.object().test(
             'at-least-one-volunteer-per-checkpoint',
-            'At least one volunteer is required for each checkpoint with valid details',
+            'At least one valid volunteer is required for each checkpoint',
             (value) => {
               const checkpointCount = parseInt(formik.values.checkpoints) || 0;
               for (let i = 1; i <= checkpointCount; i++) {
@@ -328,47 +340,75 @@ const EventsPage = () => {
       ];
       return validationSchemas[activeStep];
     })(),
+
     onSubmit: async (values) => {
       if (activeStep === steps.length - 1) {
         try {
-          const formData = new FormData();
-          formData.append('eventType', values.eventType);
-          formData.append('eventName', values.eventName);
-          formData.append('startDateTime', values.startDateTime || '');
-          formData.append('endDateTime', values.endDateTime || '');
-          formData.append('checkpoints', values.checkpoints);
-          formData.append('guestRegistrationType', values.guestRegistrationType);
-          formData.append('eventDescription', values.eventDescription);
-          formData.append('eventCategory', values.eventCategory);
-          formData.append('venueLocation', values.venueLocation);
-          formData.append('organizationName', values.organizationName);
-          formData.append('organizationEmail', values.organizationEmail);
-          formData.append('organizationPhone', values.organizationPhone);
-          formData.append('maxAttendance', values.maxAttendance);
-          formData.append('registrationDeadline', values.registrationDeadline || '');
-          formData.append('savedForms', JSON.stringify(savedForms));
-          formData.append('templateType', values.templateType);
-          formData.append('emailContent', values.emailContent);
-          formData.append('volunteers', JSON.stringify(values.volunteers));
-          if (values.brandingAssets) {
-            formData.append('brandingAssets', values.brandingAssets);
-          }
-          formData.append('facebookUrl', values.facebookUrl || '');
-          formData.append('instagramUrl', values.instagramUrl || '');
-          formData.append('twitterUrl', values.twitterUrl || '');
+          // Structure data according to stepper
+          const formData = {
+            step1: {
+              eventType: values.eventType,
+            },
+            step2: {
+              eventName: values.eventName,
+              startDateTime: values.startDateTime || '',
+              endDateTime: values.endDateTime || '',
+              checkpoints: parseInt(values.checkpoints) || 0,
+              guestRegistrationType: values.guestRegistrationType,
+            },
+            step3: {
+              eventDescription: values.eventDescription,
+              eventCategory: values.eventCategory,
+              venueLocation: values.venueLocation,
+              organizationName: values.organizationName,
+              organizationEmail: values.organizationEmail,
+              organizationPhone: values.organizationPhone,
+              maxAttendance: parseInt(values.maxAttendance) || 0,
+              registrationDeadline: values.registrationDeadline || '',
+            },
+            step4: {
+              savedForms,
+            },
+            step5: {
+              templateType: values.templateType,
+              emailContent: values.emailContent,
+              brandingAssets: values.brandingAssets ? values.brandingAssets.name : null,
+              facebookUrl: values.facebookUrl || '',
+              instagramUrl: values.instagramUrl || '',
+              twitterUrl: values.twitterUrl || '',
+            },
+            step6: {
+              volunteers: values.volunteers,
+            },
+          };
 
-          const response = await axios.post('/api/add-event', formData, {
+          // Log data to console
+          console.log('Submitting Form Data:', JSON.stringify(formData, null, 2));
+
+          // Send data to server via Vite proxy
+          const response = await axios.post(`${API_BASE_URL}/events/add_events.php`, formData, {
             headers: {
-              'X-CSRFToken': getCookie('csrftoken'),
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken') || '',
             },
           });
-          alert('Event created successfully: ' + response.data.message);
+
+          // Log response for debugging
+          console.log('Server Response:', response.data);
+
+          // Check if message exists
+          if (!response.data.message) {
+            throw new Error('No message in server response');
+          }
+
+          alert('Event created successfully: Event ID ' + (response.data.event_id || 'N/A'));
           setActiveStep(0);
           formik.resetForm();
           setSavedForms([]);
           setCurrentFormFields([]);
         } catch (error: any) {
-          alert('Error creating event: ' + (error.response?.data?.error || 'Server error. Please try again.'));
+          console.error('Submission Error:', error);
+          alert('Error creating event: ' + (error.response?.data?.error || error.message || 'Server error. Please try again.'));
         }
       } else if (activeStep === 3 && savedForms.length === 0) {
         alert('Please create one form then you can go to the next step');
@@ -466,7 +506,7 @@ const EventsPage = () => {
   );
 
   const handleAddVolunteer = (checkpoint: string) => {
-    const newVolunteer = { name: '', email: '', level: '', password: '' };
+    const newVolunteer = { name: '', email: '', level: '', password: '', sent: false };
     formik.setFieldValue('volunteers', {
       ...formik.values.volunteers,
       [checkpoint]: [...(formik.values.volunteers[checkpoint] || []), newVolunteer],
@@ -514,13 +554,23 @@ const EventsPage = () => {
         checkpoint,
         volunteer,
       };
-      const response = await axios.post('https://localhost/events/send_mail_volunteer.php', payload, {
+      const response = await axios.post(`${API_BASE_URL}/events/send_mail_volunteer.php`, payload, {
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken') || '',
         },
       });
-      alert('Invitation sent successfully: ' + response.data.message);
+      if (response.data.status === 'success') {
+        const updatedVolunteers = [...(formik.values.volunteers[checkpoint] || [])];
+        updatedVolunteers[volIndex] = { ...updatedVolunteers[volIndex], sent: true };
+        formik.setFieldValue('volunteers', {
+          ...formik.values.volunteers,
+          [checkpoint]: updatedVolunteers,
+        });
+        alert('Invitation sent successfully!');
+      } else {
+        alert('Error sending invitation: ' + response.data.message);
+      }
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || 'Server error. Please try again.';
       alert('Error sending invitation: ' + errorMessage);
@@ -1232,6 +1282,33 @@ const EventsPage = () => {
                         </Stack>
                       );
                     })}
+                    <Typography variant="h6" sx={{ mt: 3, color: 'white' }}>
+                      Volunteer Status for Checkpoint {index + 1}
+                    </Typography>
+                    <TableContainer component={Paper} sx={{ mt: 2, backgroundColor: '#2c2c2e' }}>
+                      <Table sx={{ minWidth: 650 }} aria-label="volunteer status table">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ color: 'white' }}>Name</TableCell>
+                            <TableCell sx={{ color: 'white' }}>Email</TableCell>
+                            <TableCell sx={{ color: 'white' }}>Level</TableCell>
+                            <TableCell sx={{ color: 'white' }}>Status</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {(formik.values.volunteers[checkpoint.toString()] || []).map((volunteer, volIndex) => (
+                            <TableRow key={volIndex}>
+                              <TableCell sx={{ color: 'white' }}>{volunteer.name || 'N/A'}</TableCell>
+                              <TableCell sx={{ color: 'white' }}>{volunteer.email || ''}</TableCell>
+                              <TableCell sx={{ color: 'white' }}>{volunteer.level || 'N/A'}</TableCell>
+                              <TableCell sx={{ color: 'white' }}>
+                                {volunteer.sent ? <CheckCircleIcon color="success" /> : 'Not Sent'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </Box>
                 ))}
                 {formik.errors.volunteers && formik.touched.volunteers && (
@@ -1311,7 +1388,10 @@ const EventsPage = () => {
             <Button
               type="submit"
               variant="contained"
-              disabled={!formik.isValid || (activeStep === 3 && savedForms.length === 0)}
+              disabled={
+                !formik.isValid ||
+                (activeStep === 3 && savedForms.length === 0)
+              }
               sx={{ backgroundColor: '#1976d2', '&:hover': { backgroundColor: '#115293' } }}
             >
               {activeStep === steps.length - 1 ? 'Submit' : 'Next'}
