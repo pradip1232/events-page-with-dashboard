@@ -44,6 +44,7 @@ interface Form {
 interface Event {
   event_id: number;
   event_name: string;
+  event_type: string;
   forms: Form[];
 }
 
@@ -318,6 +319,26 @@ const YourFormsPage = () => {
     }
   }, [modalState.form, modalState.fields, getCookie, handleCloseModal]);
 
+  // Calculate payment breakdown
+  const calculatePaymentBreakdown = (price: number | null) => {
+    if (!price) return { basePrice: 0, gst: 0, paymentCharge: 0, total: 0 };
+    const basePrice = price;
+    const gst = basePrice * 0.18; // 18% GST
+    const paymentCharge = basePrice * 0.05; // 5% payment processing fee
+    const total = basePrice + gst + paymentCharge;
+    return { basePrice, gst, paymentCharge, total };
+  };
+
+  // Find event type for the current form
+  const getEventType = (formId: number): string => {
+    for (const event of events) {
+      if (event.forms.some((form) => form.form_id === formId)) {
+        return event.event_type;
+      }
+    }
+    return 'free'; // Default to free if event not found
+  };
+
   return (
     <Box sx={{ padding: 4, backgroundColor: '#18181c', minHeight: '100vh' }}>
       <Typography
@@ -365,7 +386,7 @@ const YourFormsPage = () => {
                 id={`event-${event.event_id}-header`}
               >
                 <Typography variant="h6" sx={{ color: 'white' }}>
-                  {event.event_name}
+                  {event.event_name} ({event.event_type})
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
@@ -420,7 +441,7 @@ const YourFormsPage = () => {
       <Dialog
         open={modalState.open}
         onClose={handleCloseModal}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
         aria-labelledby="form-dialog-title"
         sx={{ '& .MuiDialog-paper': { backgroundColor: '#2c2c2e', color: 'white' } }}
@@ -437,71 +458,107 @@ const YourFormsPage = () => {
           )}
           {modalState.fields.length > 0 ? (
             modalState.type === 'view' ? (
-              <>
-                <Typography sx={{ color: 'white', mb: 2 }}>
-                  <strong>Form Name:</strong> {modalState.form?.form_name}
-                </Typography>
-                {modalState.form?.price !== null && (
+              <Grid container spacing={2}>
+                {/* Left Side: Form Fields */}
+                <Grid item xs={12} md={6}>
                   <Typography sx={{ color: 'white', mb: 2 }}>
-                    <strong>Price:</strong> {modalState.form?.price}
+                    <strong>Form Name:</strong> {modalState.form?.form_name}
                   </Typography>
-                )}
-                <Grid container spacing={2}>
-                  {modalState.fields.map((field, index) => (
-                    <Grid item xs={12} key={field.id || index}>
-                      {field.label === 'State' ? (
-                        <TextField
-                          fullWidth
-                          label="State"
-                          select
-                          value=""
-                          sx={textFieldStyles}
-                          disabled
-                        >
-                          {indianStates.map((state) => (
-                            <MenuItem key={state} value={state}>
-                              {state}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      ) : field.label === 'Gender' ? (
-                        <TextField
-                          fullWidth
-                          label="Gender"
-                          select
-                          value=""
-                          sx={textFieldStyles}
-                          disabled
-                        >
-                          {genderOptions.map((gender) => (
-                            <MenuItem key={gender} value={gender}>
-                              {gender}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      ) : field.label === 'Phone Number' ? (
-                        <TextField
-                          fullWidth
-                          label={field.label}
-                          type="tel"
-                          value=""
-                          sx={textFieldStyles}
-                          disabled
-                        />
-                      ) : (
-                        <TextField
-                          fullWidth
-                          label={`${field.label} (${field.type})`}
-                          type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
-                          value=""
-                          sx={textFieldStyles}
-                          disabled
-                        />
-                      )}
-                    </Grid>
-                  ))}
+                  {modalState.form?.price !== null && (
+                    <Typography sx={{ color: 'white', mb: 2 }}>
+                      <strong>Price:</strong> ₹{modalState.form?.price.toFixed(2)}
+                    </Typography>
+                  )}
+                  <Grid container spacing={2}>
+                    {modalState.fields.map((field, index) => (
+                      <Grid item xs={12} key={field.id || index}>
+                        {field.label === 'State' ? (
+                          <TextField
+                            fullWidth
+                            label="State"
+                            select
+                            value=""
+                            sx={textFieldStyles}
+                            disabled
+                          >
+                            {indianStates.map((state) => (
+                              <MenuItem key={state} value={state}>
+                                {state}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        ) : field.label === 'Gender' ? (
+                          <TextField
+                            fullWidth
+                            label="Gender"
+                            select
+                            value=""
+                            sx={textFieldStyles}
+                            disabled
+                          >
+                            {genderOptions.map((gender) => (
+                              <MenuItem key={gender} value={gender}>
+                                {gender}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        ) : field.label === 'Phone Number' ? (
+                          <TextField
+                            fullWidth
+                            label={field.label}
+                            type="tel"
+                            value=""
+                            sx={textFieldStyles}
+                            disabled
+                          />
+                        ) : (
+                          <TextField
+                            fullWidth
+                            label={`${field.label} (${field.type})`}
+                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
+                            value=""
+                            sx={textFieldStyles}
+                            disabled
+                          />
+                        )}
+                      </Grid>
+                    ))}
+                  </Grid>
                 </Grid>
-              </>
+                {/* Right Side: Payment Breakdown (for paid events) */}
+                {modalState.form && getEventType(modalState.form.form_id) === 'paid' && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                      Payment Breakdown
+                    </Typography>
+                    {modalState.form.price !== null ? (
+                      (() => {
+                        const { basePrice, gst, paymentCharge, total } = calculatePaymentBreakdown(modalState.form.price);
+                        return (
+                          <Box sx={{ backgroundColor: '#3a3a3c', p: 2, borderRadius: '8px' }}>
+                            <Typography sx={{ color: 'white', mb: 1 }}>
+                              <strong>Base Price:</strong> ₹{basePrice.toFixed(2)}
+                            </Typography>
+                            <Typography sx={{ color: 'white', mb: 1 }}>
+                              <strong>GST (18%):</strong> ₹{gst.toFixed(2)}
+                            </Typography>
+                            <Typography sx={{ color: 'white', mb: 1 }}>
+                              <strong>Payment Charge (5%):</strong> ₹{paymentCharge.toFixed(2)}
+                            </Typography>
+                            <Typography sx={{ color: 'white', fontWeight: 'bold', mt: 2 }}>
+                              <strong>Total:</strong> ₹{total.toFixed(2)}
+                            </Typography>
+                          </Box>
+                        );
+                      })()
+                    ) : (
+                      <Typography sx={{ color: '#ff6b6b' }}>
+                        Price not set for this form.
+                      </Typography>
+                    )}
+                  </Grid>
+                )}
+              </Grid>
             ) : (
               <>
                 <Grid container spacing={1}>

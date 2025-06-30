@@ -1,8 +1,9 @@
 {
   "version": "1.0.0",
   "source": "./index.html",
+  "homepage": "https://squibfactory.com/clickngo",
   "type": "module",
-  "name": "anima-project",
+  "name": "clickNgo-project",
   "description": "A React project ",
   "scripts": {
     "dev": "vite",
