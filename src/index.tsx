@@ -18,6 +18,9 @@ import LogoutPage from "./dashbaord/pages/LogoutPage";
 import LoginPage from "./screens/LandingPage/LoginPage";
 import PrivateRoute from "./components/ui/PrivateRoute";
 import SignUpPage from "./screens/SignUpPage";
+import ProfilePage from "./dashbaord/pages/ProfilePage";
+import { SettingsIcon } from "lucide-react";
+import SettingsPage from "./dashbaord/pages/SettingsPage";
 
 createRoot(document.getElementById("app") as HTMLElement).render(
   <StrictMode>
@@ -33,6 +36,8 @@ createRoot(document.getElementById("app") as HTMLElement).render(
             <Route path="users" element={<UsersPage />} />
             <Route path="events" element={<EventsPage />} />
             <Route path="your-events" element={<YourEventsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="your-forms" element={<YourFormsPage />} />
             <Route path="volunteer" element={<VolunteerPage />} />
             <Route path="support" element={<SupportPage />} />
