@@ -1,27 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Box,
-  Typography,
-  CircularProgress,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Card,
-  CardContent,
-  IconButton,
-  MenuItem,
-} from '@mui/material';
-
-// Environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
+import './Style.css';
 
 // Volunteer type
 interface Volunteer {
@@ -50,7 +30,7 @@ interface VolunteerModalState {
 
 const levelOptions = ['Beginner', 'Intermediate', 'Expert'];
 
-const VolunteerPage = () => {
+const VolunteerPage: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,25 +42,8 @@ const VolunteerPage = () => {
     volunteer: { name: '', email: '', level: 'Beginner', password: '', sent: true },
   });
 
-  // TextField styles
-  const textFieldStyles = {
-    '& .MuiInputBase-input': { color: 'white' },
-    '& .MuiInputLabel-root': { color: 'white' },
-    '& .MuiInputBase-root': {
-      backgroundColor: '#2c2c2e',
-      '&:hover': { backgroundColor: '#3a3a3c' },
-    },
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-    '& .MuiFormHelperText-root': { color: '#ff6b6b' },
-  };
 
-  // Card styles
-  const cardStyles = {
-    backgroundColor: '#2c2c2e',
-    color: 'white',
-    marginBottom: 1,
-    border: '1px solid white',
-  };
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
 
   // Get CSRF token
   const getCookie = useCallback((name: string): string => {
@@ -122,7 +85,10 @@ const VolunteerPage = () => {
           throw new Error(response.data.error || 'Failed to fetch events');
         }
       } catch (err: any) {
-        const errorMessage = err.response?.data?.error || err.message || 'Server error';
+        const errorMessage =
+          err.response?.data?.error ||
+          (typeof err.response?.data === 'string' ? 'Server error: Invalid response' : err.message) ||
+          'Server error';
         console.error('Fetch error:', {
           message: errorMessage,
           status: err.response?.status,
@@ -247,7 +213,10 @@ const VolunteerPage = () => {
         throw new Error(response.data.error || 'Failed to add volunteer');
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.message || 'Server error';
+      const errorMessage =
+        err.response?.data?.error ||
+        (typeof err.response?.data === 'string' ? 'Server error: Invalid response' : err.message) ||
+        'Server error';
       console.error('Add volunteer error:', {
         message: errorMessage,
         status: err.response?.status,
@@ -299,7 +268,10 @@ const VolunteerPage = () => {
           throw new Error(response.data.error || 'Failed to remove volunteer');
         }
       } catch (err: any) {
-        const errorMessage = err.response?.data?.error || err.message || 'Server error';
+        const errorMessage =
+          err.response?.data?.error ||
+          (typeof err.response?.data === 'string' ? 'Server error: Invalid response' : err.message) ||
+          'Server error';
         console.error('Remove volunteer error:', {
           message: errorMessage,
           status: err.response?.status,
@@ -313,188 +285,203 @@ const VolunteerPage = () => {
   );
 
   return (
-    <Box sx={{ padding: 4, backgroundColor: '#18181c', minHeight: '100vh' }}>
-      <Typography
-        variant="h4"
-        textAlign="center"
-        gutterBottom
-        sx={{ fontWeight: 600, color: 'white', mb: 3 }}
-      >
-        Volunteers
-      </Typography>
+    <div className="min-h-screen bg-gray-900 p-6">
+      <h1 className="text-3xl font-semibold text-white text-center mb-6">Volunteers</h1>
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress sx={{ color: 'white' }} />
-        </Box>
+        <div className="flex justify-center mt-6">
+          <svg
+            className="animate-spin h-8 w-8 text-pink-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </div>
       ) : error ? (
-        <Typography color="error" sx={{ mt: 3, color: '#ff6b6b', textAlign: 'center' }}>
-          Error: {error}
-        </Typography>
+        <p className="text-red-500 text-center mt-6">Error: {error}</p>
       ) : events.length === 0 ? (
-        <Typography sx={{ mt: 3, color: 'white', textAlign: 'center' }}>
-          No events found.
-        </Typography>
+        <p className="text-gray-300 text-center mt-6">No events found.</p>
       ) : (
-        <Box sx={{ maxWidth: 600, margin: 'auto' }}>
+        <div className="max-w-2xl mx-auto">
           {events.map((event) => (
-            <Accordion
+            <div
               key={event.event_id}
-              expanded={expanded === `event-${event.event_id}`}
-              onChange={handleAccordionChange(`event-${event.event_id}`)}
-              sx={{
-                mb: 2,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-              }}
+              className="mb-4 bg-gray-800 rounded-lg shadow-md border border-gray-700"
             >
-              <AccordionSummary
-                expandIcon={
-                  <i
-                    className="bi bi-chevron-down"
-                    style={{ color: 'white', fontSize: '24px', border: '1px solid white' }}
-                  />
-                }
-                aria-controls={`event-${event.event_id}-content`}
-                id={`event-${event.event_id}-header`}
+              <button
+                onClick={() => handleAccordionChange(`event-${event.event_id}`)({} as any, expanded !== `event-${event.event_id}`)}
+                className="w-full flex justify-between items-center p-4 text-left"
               >
-                <Typography variant="h6" sx={{ color: 'white' }}>
-                  {event.event_name}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                {event.volunteers.length > 0 ? (
-                  <Box>
-                    {event.volunteers.map((volunteer) => (
-                      <Card
-                        key={`${event.event_id}-${volunteer.volunteer_id}`}
-                        sx={cardStyles}
-                      >
-                        <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box>
-                            <Typography variant="subtitle1" sx={{ color: 'white' }}>
-                              Name: {volunteer.name}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'white' }}>
-                              Email: {volunteer.email}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'white' }}>
-                              Level: {volunteer.level}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'white' }}>
-                              Checkpoint: {volunteer.checkpoint}
-                            </Typography>
-                          </Box>
-                          <IconButton
+                <h2 className="text-xl font-medium text-white">{event.event_name}</h2>
+                <svg
+                  className={`w-6 h-6 text-white transition-transform ${expanded === `event-${event.event_id}` ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              {expanded === `event-${event.event_id}` && (
+                <div className="p-4">
+                  {event.volunteers.length > 0 ? (
+                    <div className="space-y-2">
+                      {event.volunteers.map((volunteer) => (
+                        <div
+                          key={`${event.event_id}-${volunteer.volunteer_id}`}
+                          className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex justify-between items-center"
+                        >
+                          <div>
+                            <p className="text-white"><strong>Name:</strong> {volunteer.name}</p>
+                            <p className="text-gray-300"><strong>Email:</strong> {volunteer.email}</p>
+                            <p className="text-gray-300"><strong>Level:</strong> {volunteer.level}</p>
+                            <p className="text-gray-300"><strong>Checkpoint:</strong> {volunteer.checkpoint || 'N/A'}</p>
+                          </div>
+                          <button
                             onClick={() => handleRemoveVolunteer(event.event_id, volunteer.volunteer_id, volunteer.email)}
-                            sx={{ color: 'white' }}
+                            className="text-red-500 hover:text-red-600"
                           >
-                            <i
-                              className="bi bi-trash"
-                              style={{ color: 'white', fontSize: '24px', border: '1px solid white' }}
-                            />
-                          </IconButton>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography sx={{ color: 'white' }}>No volunteers for this event.</Typography>
-                )}
-                <Box sx={{ mt: 2 }}>
-                  <Button
-                    variant="outlined"
+                            <svg
+                              className="w-6 h-6"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M6 18L18 6M6 6l12 12"
+                              ></path>
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-300">No volunteers for this event.</p>
+                  )}
+                  <button
                     onClick={() => handleOpenModal(event.event_id)}
-                    sx={{ color: 'white', borderColor: 'white' }}
-                    startIcon={
-                      <i
-                        className="bi bi-plus"
-                        style={{ color: 'white', fontSize: '24px', border: '1px solid white' }}
-                      />
-                    }
+                    className="mt-4 bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition-colors"
                   >
+                    <svg
+                      className="w-5 h-5 inline-block mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 4v16m8-8H4"
+                      ></path>
+                    </svg>
                     Add Volunteer
-                  </Button>
-                </Box>
-              </AccordionDetails>
-            </Accordion>
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
-        </Box>
+        </div>
       )}
 
-      <Dialog
-        open={modalState.open}
-        onClose={handleCloseModal}
-        maxWidth="sm">
-        <DialogTitle id="add-volunteer-dialog-title" sx={{ color: 'white' }}>
-          Add Volunteer
-        </DialogTitle>
-        <DialogContent dividers sx={{ backgroundColor: '#2c2c2e', color: 'white' }}>
-          {apiError && (
-            <Typography color="error" sx={{ mb: 2, color: '#ff6b6b' }}>
-              Error: {apiError}
-            </Typography>
-          )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Name"
-              value={modalState.volunteer.name}
-              onChange={(e) => handleVolunteerChange('name', e.target.value)}
-              sx={textFieldStyles}
-              error={!modalState.volunteer.name.trim() && modalState.volunteer.name !== ''}
-              helperText={!modalState.volunteer.name.trim() && modalState.volunteer.name !== '' ? 'Name is required' : ''}
-            />
-            <TextField
-              fullWidth
-              label="Email"
-              value={modalState.volunteer.email}
-              onChange={(e) => handleVolunteerChange('email', e.target.value)}
-              sx={textFieldStyles}
-              type="email"
-              error={!isValidEmail(modalState.volunteer.email) && modalState.volunteer.email !== ''}
-              helperText={!isValidEmail(modalState.volunteer.email) && modalState.volunteer.email !== '' ? 'Invalid email format' : ''}
-            />
-            <TextField
-              fullWidth
-              label="Level"
-              select
-              value={modalState.volunteer.level}
-              onChange={(e) => handleVolunteerChange('level', e.target.value)}
-              sx={textFieldStyles}
-            >
-              {levelOptions.map((level) => (
-                <MenuItem key={level} value={level}>
-                  {level}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              fullWidth
-              label="Password (optional)"
-              value={modalState.volunteer.password}
-              onChange={(e) => handleVolunteerChange('password', e.target.value)}
-              sx={textFieldStyles}
-              type="password"
-              error={modalState.volunteer.password !== '' && modalState.volunteer.password.length < 8}
-              helperText={modalState.volunteer.password !== '' && modalState.volunteer.password.length < 8 ? 'Password must be at least 8 characters' : ''}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ backgroundColor: '#2c2c2e' }}>
-          <Button
-            onClick={handleAddVolunteer}
-            sx={{ color: 'white', borderColor: 'white' }}
-            disabled={!modalState.volunteer.name.trim() || !isValidEmail(modalState.volunteer.email)}
-          >
-            Add
-          </Button>
-          <Button onClick={handleCloseModal} sx={{ color: 'white', borderColor: 'white' }}>
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {modalState.open && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 w-full max-w-md animate-fade-in">
+            <h2 className="text-xl font-semibold text-white mb-4">Add Volunteer</h2>
+            {apiError && <p className="text-red-500 mb-4">Error: {apiError}</p>}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={modalState.volunteer.name}
+                  onChange={(e) => handleVolunteerChange('name', e.target.value)}
+                  className={`w-full p-2 rounded bg-gray-700 text-white border ${modalState.volunteer.name && !modalState.volunteer.name.trim() ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
+                  placeholder="Enter name"
+                />
+                {modalState.volunteer.name && !modalState.volunteer.name.trim() && (
+                  <p className="text-red-500 text-sm mt-1">Name is required</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-gray-300 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={modalState.volunteer.email}
+                  onChange={(e) => handleVolunteerChange('email', e.target.value)}
+                  className={`w-full p-2 rounded bg-gray-700 text-white border ${modalState.volunteer.email && !isValidEmail(modalState.volunteer.email) ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
+                  placeholder="Enter email"
+                />
+                {modalState.volunteer.email && !isValidEmail(modalState.volunteer.email) && (
+                  <p className="text-red-500 text-sm mt-1">Invalid email format</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-gray-300 mb-1">Level</label>
+                <select
+                  value={modalState.volunteer.level}
+                  onChange={(e) => handleVolunteerChange('level', e.target.value)}
+                  className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500"
+                >
+                  {levelOptions.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-300 mb-1">Password (optional)</label>
+                <input
+                  type="password"
+                  value={modalState.volunteer.password}
+                  onChange={(e) => handleVolunteerChange('password', e.target.value)}
+                  className={`w-full p-2 rounded bg-gray-700 text-white border ${modalState.volunteer.password && modalState.volunteer.password.length < 8 ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
+                  placeholder="Enter password"
+                />
+                {modalState.volunteer.password && modalState.volunteer.password.length < 8 && (
+                  <p className="text-red-500 text-sm mt-1">Password must be at least 8 characters</p>
+                )}
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end space-x-2">
+              <button
+                onClick={handleAddVolunteer}
+                disabled={!modalState.volunteer.name.trim() || !isValidEmail(modalState.volunteer.email)}
+                className="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+              >
+                Add
+              </button>
+              <button
+                onClick={handleCloseModal}
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

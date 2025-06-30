@@ -117,7 +117,7 @@ const ProfilePage: React.FC = () => {
         <div className="min-h-screen bg-gray-900 p-6 text-white">
             <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">User Profile</h1>
             {user ? (
-                <div className="max-w-2xl mx-auto bg-gray-800 border border-gray-700 rounded-lg p-6 animate-fade-in">
+                <div className="max-w-4xl mx-auto bg-gray-800 border border-gray-700 rounded-lg p-6 animate-fade-in">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
                             <i className="bi bi-person-circle text-pink-500 text-4xl" />

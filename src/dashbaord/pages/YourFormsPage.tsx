@@ -1,28 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Box,
-  Typography,
-  CircularProgress,
-  Card,
-  CardContent,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Grid,
-  MenuItem,
-  IconButton,
-} from '@mui/material';
-
-// Environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
+import './Style.css';
 
 // Form field type
 interface FormField {
@@ -58,39 +37,15 @@ interface ModalState {
 
 // Predefined options for State and Gender
 const indianStates = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
+  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra',
+  'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim',
+  'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
 ];
 
 const genderOptions = ['Male', 'Female', 'Other'];
 
-const YourFormsPage = () => {
+const YourFormsPage: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,26 +58,9 @@ const YourFormsPage = () => {
     fields: [],
   });
 
-  // TextField styles
-  const textFieldStyles = {
-    '& .MuiInputBase-input': { color: 'white' },
-    '& .MuiInputLabel-root': { color: 'white' },
-    '& .MuiInputBase-root': {
-      backgroundColor: '#2c2c2e',
-      '&:hover': { backgroundColor: '#3a3a3c' },
-    },
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-    '& .MuiFormHelperText-root': { color: '#ff6b6b' },
-  };
 
-  // Card styles
-  const cardStyles = {
-    backgroundColor: '#2c2c2e',
-    color: 'white',
-    marginBottom: 2,
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  };
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
+
 
   // Get CSRF token
   const getCookie = useCallback((name: string): string => {
@@ -340,341 +278,298 @@ const YourFormsPage = () => {
   };
 
   return (
-    <Box sx={{ padding: 4, backgroundColor: '#18181c', minHeight: '100vh' }}>
-      <Typography
-        variant="h4"
-        textAlign="center"
-        gutterBottom
-        sx={{ fontWeight: 600, color: 'white', mb: 3 }}
-      >
-        Your Forms
-      </Typography>
+    <div className="min-h-screen bg-gray-900 p-6">
+      <h1 className="text-3xl font-semibold text-white text-center mb-6">Your Forms</h1>
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress sx={{ color: 'white' }} />
-        </Box>
+        <div className="flex justify-center mt-6">
+          <svg
+            className="animate-spin h-8 w-8 text-pink-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </div>
       ) : error ? (
-        <Typography color="error" sx={{ mt: 3, color: '#ff6b6b', textAlign: 'center' }}>
-          Error: {error}
-        </Typography>
+        <p className="text-red-500 text-center mt-6">Error: {error}</p>
       ) : events.length === 0 ? (
-        <Typography sx={{ mt: 3, color: 'white', textAlign: 'center' }}>
-          No forms found.
-        </Typography>
+        <p className="text-gray-300 text-center mt-6">No forms found.</p>
       ) : (
-        <Box sx={{ maxWidth: 600, margin: 'auto' }}>
+        <div className="max-w-2xl mx-auto">
           {events.map((event) => (
-            <Accordion
+            <div
               key={event.event_id}
-              expanded={expanded === `event-${event.event_id}`}
-              onChange={handleAccordionChange(`event-${event.event_id}`)}
-              sx={{
-                mb: 2,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-              }}
+              className="mb-4 bg-gray-800 rounded-lg shadow-md border border-gray-700"
             >
-              <AccordionSummary
-                expandIcon={
-                  <i
-                    className="bi bi-chevron-down"
-                    style={{ color: 'white', fontSize: '24px', border: '1px solid white' }}
-                  />
-                }
-                aria-controls={`event-${event.event_id}-content`}
-                id={`event-${event.event_id}-header`}
+              <button
+                onClick={() => handleAccordionChange(`event-${event.event_id}`)({} as any, expanded !== `event-${event.event_id}`)}
+                className="w-full flex justify-between items-center p-4 text-left"
               >
-                <Typography variant="h6" sx={{ color: 'white' }}>
-                  {event.event_name} ({event.event_type})
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                {event.forms.length > 0 ? (
-                  event.forms.map((form) => (
-                    <Card key={form.form_id} sx={cardStyles}>
-                      <CardContent>
-                        <Typography sx={{ color: 'white' }}>
-                          <strong>Form Name:</strong> {form.form_name}
-                        </Typography>
-                        <Typography sx={{ color: 'white' }}>
-                          <strong>Price:</strong> {form.price ?? 'Free'}
-                        </Typography>
-                        <Typography sx={{ color: 'white' }}>
-                          <strong>Fields:</strong>{' '}
-                          {form.fields.length > 0
-                            ? form.fields.map((field) => field.label).join(', ')
-                            : 'No fields defined'}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => handleOpenModal('view', form)}
-                            sx={{ color: 'white', borderColor: 'white' }}
-                          >
-                            View Form
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => handleOpenModal('modify', form)}
-                            sx={{ color: 'white', borderColor: 'white' }}
-                          >
-                            Modify Form Fields
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <Typography color="text.secondary" sx={{ color: 'white' }}>
-                    No forms for this event.
-                  </Typography>
-                )}
-              </AccordionDetails>
-            </Accordion>
+                <h2 className="text-xl font-medium text-white">{event.event_name} ({event.event_type})</h2>
+                <svg
+                  className={`w-6 h-6 text-white transition-transform ${expanded === `event-${event.event_id}` ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              {expanded === `event-${event.event_id}` && (
+                <div className="p-4">
+                  {event.forms.length > 0 ? (
+                    <div className="space-y-2">
+                      {event.forms.map((form) => (
+                        <div
+                          key={form.form_id}
+                          className="bg-gray-800 border border-gray-700 rounded-lg p-4"
+                        >
+                          <p className="text-white"><strong>Form Name:</strong> {form.form_name}</p>
+                          <p className="text-gray-300"><strong>Price:</strong> {form.price ? `₹${form.price.toFixed(2)}` : 'Free'}</p>
+                          <p className="text-gray-300">
+                            <strong>Fields:</strong>{' '}
+                            {form.fields.length > 0
+                              ? form.fields.map((field) => field.label).join(', ')
+                              : 'No fields defined'}
+                          </p>
+                          <div className="mt-2 flex space-x-2">
+                            <button
+                              onClick={() => handleOpenModal('view', form)}
+                              className="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition-colors"
+                            >
+                              View Form
+                            </button>
+                            <button
+                              onClick={() => handleOpenModal('modify', form)}
+                              className="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition-colors"
+                            >
+                              Modify Form Fields
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-300">No forms for this event.</p>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
-        </Box>
+        </div>
       )}
 
-      <Dialog
-        open={modalState.open}
-        onClose={handleCloseModal}
-        maxWidth="md"
-        fullWidth
-        aria-labelledby="form-dialog-title"
-        sx={{ '& .MuiDialog-paper': { backgroundColor: '#2c2c2e', color: 'white' } }}
-      >
-        <DialogTitle id="form-dialog-title" sx={{ color: 'white' }}>
-          {modalState.type === 'view' ? 'View Form' : 'Modify Form Fields'} -{' '}
-          {modalState.form?.form_name || 'Unknown'}
-        </DialogTitle>
-        <DialogContent dividers sx={{ backgroundColor: '#2c2c2e', color: 'white' }}>
-          {apiError && (
-            <Typography color="error" sx={{ mb: 2, color: '#ff6b6b' }}>
-              Error: {apiError}
-            </Typography>
-          )}
-          {modalState.fields.length > 0 ? (
-            modalState.type === 'view' ? (
-              <Grid container spacing={2}>
-                {/* Left Side: Form Fields */}
-                <Grid item xs={12} md={6}>
-                  <Typography sx={{ color: 'white', mb: 2 }}>
-                    <strong>Form Name:</strong> {modalState.form?.form_name}
-                  </Typography>
-                  {modalState.form?.price !== null && (
-                    <Typography sx={{ color: 'white', mb: 2 }}>
-                      <strong>Price:</strong> ₹{modalState.form?.price.toFixed(2)}
-                    </Typography>
-                  )}
-                  <Grid container spacing={2}>
-                    {modalState.fields.map((field, index) => (
-                      <Grid item xs={12} key={field.id || index}>
-                        {field.label === 'State' ? (
-                          <TextField
-                            fullWidth
-                            label="State"
-                            select
-                            value=""
-                            sx={textFieldStyles}
-                            disabled
-                          >
-                            {indianStates.map((state) => (
-                              <MenuItem key={state} value={state}>
-                                {state}
-                              </MenuItem>
-                            ))}
-                          </TextField>
-                        ) : field.label === 'Gender' ? (
-                          <TextField
-                            fullWidth
-                            label="Gender"
-                            select
-                            value=""
-                            sx={textFieldStyles}
-                            disabled
-                          >
-                            {genderOptions.map((gender) => (
-                              <MenuItem key={gender} value={gender}>
-                                {gender}
-                              </MenuItem>
-                            ))}
-                          </TextField>
-                        ) : field.label === 'Phone Number' ? (
-                          <TextField
-                            fullWidth
-                            label={field.label}
-                            type="tel"
-                            value=""
-                            sx={textFieldStyles}
-                            disabled
-                          />
-                        ) : (
-                          <TextField
-                            fullWidth
-                            label={`${field.label} (${field.type})`}
-                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
-                            value=""
-                            sx={textFieldStyles}
-                            disabled
-                          />
-                        )}
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Grid>
-                {/* Right Side: Payment Breakdown (for paid events) */}
-                {modalState.form && getEventType(modalState.form.form_id) === 'paid' && (
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-                      Payment Breakdown
-                    </Typography>
-                    {modalState.form.price !== null ? (
-                      (() => {
-                        const { basePrice, gst, paymentCharge, total } = calculatePaymentBreakdown(modalState.form.price);
-                        return (
-                          <Box sx={{ backgroundColor: '#3a3a3c', p: 2, borderRadius: '8px' }}>
-                            <Typography sx={{ color: 'white', mb: 1 }}>
-                              <strong>Base Price:</strong> ₹{basePrice.toFixed(2)}
-                            </Typography>
-                            <Typography sx={{ color: 'white', mb: 1 }}>
-                              <strong>GST (18%):</strong> ₹{gst.toFixed(2)}
-                            </Typography>
-                            <Typography sx={{ color: 'white', mb: 1 }}>
-                              <strong>Payment Charge (5%):</strong> ₹{paymentCharge.toFixed(2)}
-                            </Typography>
-                            <Typography sx={{ color: 'white', fontWeight: 'bold', mt: 2 }}>
-                              <strong>Total:</strong> ₹{total.toFixed(2)}
-                            </Typography>
-                          </Box>
-                        );
-                      })()
-                    ) : (
-                      <Typography sx={{ color: '#ff6b6b' }}>
-                        Price not set for this form.
-                      </Typography>
+      {modalState.open && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 w-full max-w-3xl animate-fade-in">
+            <h2 className="text-xl font-semibold text-white mb-4">
+              {modalState.type === 'view' ? 'View Form' : 'Modify Form Fields'} -{' '}
+              {modalState.form?.form_name || 'Unknown'}
+            </h2>
+            {apiError && <p className="text-red-500 mb-4">Error: {apiError}</p>}
+            {modalState.fields.length > 0 ? (
+              modalState.type === 'view' ? (
+                <div className="flex flex-col md:flex-row md:space-x-4">
+                  {/* Left Side: Form Fields */}
+                  <div className="flex-1 space-y-4">
+                    <p className="text-white"><strong>Form Name:</strong> {modalState.form?.form_name}</p>
+                    {modalState.form?.price !== null && (
+                      <p className="text-gray-300"><strong>Price:</strong> ₹{modalState.form?.price.toFixed(2)}</p>
                     )}
-                  </Grid>
-                )}
-              </Grid>
-            ) : (
-              <>
-                <Grid container spacing={1}>
+                    <div className="space-y-2">
+                      {modalState.fields.map((field, index) => (
+                        <div key={field.id || index}>
+                          {field.label === 'State' ? (
+                            <select
+                              className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
+                              disabled
+                            >
+                              <option value="">Select State</option>
+                              {indianStates.map((state) => (
+                                <option key={state} value={state}>
+                                  {state}
+                                </option>
+                              ))}
+                            </select>
+                          ) : field.label === 'Gender' ? (
+                            <select
+                              className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
+                              disabled
+                            >
+                              <option value="">Select Gender</option>
+                              {genderOptions.map((gender) => (
+                                <option key={gender} value={gender}>
+                                  {gender}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'tel' ? 'tel' : 'text'}
+                              placeholder={`${field.label} (${field.type})`}
+                              className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
+                              disabled
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Right Side: Payment Breakdown (for paid events) */}
+                  {modalState.form && getEventType(modalState.form.form_id) === 'paid' && (
+                    <div className="flex-1 mt-4 md:mt-0">
+                      <h3 className="text-lg font-medium text-white mb-2">Payment Breakdown</h3>
+                      {modalState.form.price !== null ? (
+                        (() => {
+                          const { basePrice, gst, paymentCharge, total } = calculatePaymentBreakdown(modalState.form.price);
+                          return (
+                            <div className="bg-gray-700 p-4 rounded-lg">
+                              <p className="text-gray-300 mb-1"><strong>Base Price:</strong> ₹{basePrice.toFixed(2)}</p>
+                              <p className="text-gray-300 mb-1"><strong>GST (18%):</strong> ₹{gst.toFixed(2)}</p>
+                              <p className="text-gray-300 mb-1"><strong>Payment Charge (5%):</strong> ₹{paymentCharge.toFixed(2)}</p>
+                              <p className="text-white font-bold mt-2"><strong>Total:</strong> ₹{total.toFixed(2)}</p>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <p className="text-red-500">Price not set for this form.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
                   {modalState.fields.map((field, index) => (
-                    <Grid container spacing={1} key={field.id || index} sx={{ mb: 1, alignItems: 'center' }}>
-                      <Grid item xs={4}>
-                        <TextField
-                          label="Field Name"
+                    <div key={field.id || index} className="flex items-center space-x-2">
+                      <div className="flex-1">
+                        <input
+                          type="text"
                           value={field.label || ''}
                           onChange={(e) => handleFieldChange(index, { ...field, label: e.target.value })}
-                          fullWidth
-                          margin="dense"
-                          sx={textFieldStyles}
-                          error={field.label.trim() === '' && field.label !== ''}
-                          helperText={field.label.trim() === '' && field.label !== '' ? 'Field name is required' : ''}
+                          className={`w-full p-2 rounded bg-gray-700 text-white border ${field.label && field.label.trim() === '' ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
+                          placeholder="Field Name"
                         />
-                      </Grid>
-                      <Grid item xs={4}>
-                        <TextField
-                          select
-                          label="Field Type"
-                          value={field.type || 'text'}
-                          onChange={(e) => handleFieldChange(index, { ...field, type: e.target.value })}
-                          fullWidth
-                          margin="dense"
-                          sx={textFieldStyles}
+                        {field.label && field.label.trim() === '' && (
+                          <p className="text-red-500 text-sm mt-1">Field name is required</p>
+                        )}
+                      </div>
+                      <select
+                        value={field.type || 'text'}
+                        onChange={(e) => handleFieldChange(index, { ...field, type: e.target.value })}
+                        className="flex-1 p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500"
+                      >
+                        {['text', 'number', 'email', 'tel'].map((type) => (
+                          <option key={type} value={type}>
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={field.required ? 'Yes' : 'No'}
+                        onChange={(e) => handleFieldChange(index, { ...field, required: e.target.value === 'Yes' })}
+                        className="flex-1 p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500"
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      <button
+                        onClick={() => handleRemoveField(index)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
                         >
-                          {['text', 'number', 'email', 'tel'].map((type) => (
-                            <MenuItem key={type} value={type}>
-                              {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                      <Grid item xs={3}>
-                        <TextField
-                          label="Required"
-                          value={field.required ? 'Yes' : 'No'}
-                          onChange={(e) =>
-                            handleFieldChange(index, { ...field, required: e.target.value === 'Yes' })
-                          }
-                          select
-                          SelectProps={{ native: true }}
-                          fullWidth
-                          margin="dense"
-                          sx={textFieldStyles}
-                        >
-                          <option value="Yes">Yes</option>
-                          <option value="No">No</option>
-                        </TextField>
-                      </Grid>
-                      <Grid item xs={1}>
-                        <IconButton
-                          onClick={() => handleRemoveField(index)}
-                          sx={{ color: 'white' }}
-                        >
-                          <i
-                            className="bi bi-trash"
-                            style={{ color: 'white', fontSize: '24px', border: '1px solid white' }}
-                          />
-                        </IconButton>
-                      </Grid>
-                    </Grid>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          ></path>
+                        </svg>
+                      </button>
+                    </div>
                   ))}
-                </Grid>
-                <Grid item xs={12}>
-                  <IconButton
-                    color="primary"
+                  <button
                     onClick={handleAddField}
                     disabled={
                       modalState.fields.length > 0 &&
                       modalState.fields[modalState.fields.length - 1].label.trim() === ''
                     }
-                    sx={{ color: 'white' }}
+                    className="text-pink-500 hover:text-pink-600 disabled:text-gray-600 disabled:cursor-not-allowed"
                   >
-                    <i
-                      className="bi bi-plus"
-                      style={{ color: 'white', fontSize: '24px', border: '1px solid white' }}
-                    />
-                  </IconButton>
-                </Grid>
-              </>
-            )
-          ) : (
-            <Typography color="text.secondary" sx={{ color: 'white' }}>
-              No fields to display.{' '}
+                    <svg
+                      className="w-6 h-6 inline-block mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 4v16m8-8H4"
+                      ></path>
+                    </svg>
+                    Add Field
+                  </button>
+                </div>
+              )
+            ) : (
+              <div className="text-gray-300">
+                No fields to display.{' '}
+                {modalState.type === 'modify' && (
+                  <button
+                    onClick={handleAddField}
+                    className="text-pink-500 hover:text-pink-600 ml-2"
+                  >
+                    Add Field
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="mt-6 flex justify-end space-x-2">
               {modalState.type === 'modify' && (
-                <Button
-                  onClick={handleAddField}
-                  sx={{ color: 'white', borderColor: 'white', ml: 1 }}
+                <button
+                  onClick={handleSaveFields}
+                  disabled={
+                    modalState.fields.length > 0 &&
+                    modalState.fields[modalState.fields.length - 1].label.trim() === ''
+                  }
+                  className="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
                 >
-                  Add Field
-                </Button>
+                  Save
+                </button>
               )}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ backgroundColor: '#2c2c2e' }}>
-          {modalState.type === 'modify' && (
-            <Button
-              onClick={handleSaveFields}
-              sx={{ color: 'white', borderColor: 'white' }}
-              disabled={
-                modalState.fields.length > 0 &&
-                modalState.fields[modalState.fields.length - 1].label.trim() === ''
-              }
-            >
-              Save
-            </Button>
-          )}
-          <Button onClick={handleCloseModal} sx={{ color: 'white', borderColor: 'white' }}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+              <button
+                onClick={handleCloseModal}
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-500 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
