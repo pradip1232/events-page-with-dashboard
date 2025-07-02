@@ -72,9 +72,9 @@ export const FeaturesSection = (): JSX.Element => {
         {featureCards.map((card) => (
           <Card
             key={card.id}
-            className="flex flex-col w-[410px] items-center gap-2.5 px-5 py-[30px] bg-[#18181c] rounded-[20px] border-none"
+            className="flex flex-col w-[410px] items-center gap-2.5 px-5 py-[30px] bg-[#18181c] rounded-[20px] border-none min-h-[520px]"
           >
-            <CardContent className="p-0 flex flex-col items-center w-full">
+            <CardContent className="p-0 flex flex-col items-center w-full justify-between flex-grow">
               <div className="flex flex-col w-[104px] h-[104px] items-center justify-center gap-2.5 p-[29px] bg-[#222228] rounded-[30px] mb-2.5">
                 {card.id === 1 || card.id === 4 ? (
                   <div className="relative w-[44.78px] h-[45.96px] bg-[url(${card.icon})] bg-[100%_100%]" />

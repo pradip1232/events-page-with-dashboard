@@ -32,6 +32,7 @@ const Sidebar: React.FC = () => {
 
     const navItems: NavItemProps[] = [
         { to: "/dashboard", icon: <FaTachometerAlt />, text: "Dashboard" },
+        { to: "/dashboard/your-token", icon: <FaTachometerAlt />, text: "Your Token" },
         { to: "/dashboard/users", icon: <FaUsers />, text: "Users" },
         { to: "/dashboard/events", icon: <FaCalendarAlt />, text: "Events" },
         { to: "/dashboard/your-events", icon: <FaCalendarAlt />, text: "Your Events" },

@@ -285,7 +285,7 @@ const LoginPage = () => {
             return;
         }
 
-        console.log('Attempting login with:', { email });
+        console.log('Attempting login with:', { email, password });
 
         try {
             const response = await axios.post(

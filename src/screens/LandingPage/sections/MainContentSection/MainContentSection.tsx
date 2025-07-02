@@ -41,7 +41,7 @@ export const MainContentSection = (): JSX.Element => {
           className="absolute bottom-0 left-1/2 -translate-x-1/2 px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90 transition-opacity"
         >
           <span className="font-button-text font-[number:var(--button-text-font-weight)] text-text text-[length:var(--button-text-font-size)] tracking-[var(--button-text-letter-spacing)] leading-[var(--button-text-line-height)] whitespace-nowrap [font-style:var(--button-text-font-style)]">
-            Create a Free Test Eventt
+            Create a Free Test Event
           </span>
         </Button>
 
@@ -67,7 +67,7 @@ export const MainContentSection = (): JSX.Element => {
           <span className="[font-family:'Poppins',Helvetica] text-white text-lg leading-7">
             {" "}
           </span>
-          <span className="[font-family:'Poppins',Helvetica] text-white text-2xl leading-9">
+          <span className="[font-family:'Poppins',Helvetica] text-white text-[22px] leading-9">
             From registration forms to QR-based check-ins, it&apos;s all DIY —
             <br />
             zero calls, no downloads, no chaos. No middlemen. Just Click. And
@@ -101,7 +101,10 @@ export const MainContentSection = (): JSX.Element => {
         </NavigationMenu>
 
         {/* CTA Button */}
-        <Button className="px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90 transition-opacity">
+        <Button className="px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90 transition-opacity"
+          onClick={() => (window.location.href = "/dashboard")}
+
+        >
           <span className="font-button-text font-[number:var(--button-text-font-weight)] text-text text-[length:var(--button-text-font-size)] tracking-[var(--button-text-letter-spacing)] leading-[var(--button-text-line-height)] whitespace-nowrap [font-style:var(--button-text-font-style)]">
             Create a Free Test Event
           </span>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import './Style.css';
+// import './Style.css';
 
 // Form field type
 interface FormField {
@@ -59,7 +59,7 @@ const YourFormsPage: React.FC = () => {
   });
 
 
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
 
 
   // Get CSRF token
@@ -79,10 +79,39 @@ const YourFormsPage: React.FC = () => {
   // Fetch forms
   useEffect(() => {
     const fetchForms = async () => {
+
+
+      const userData = localStorage.getItem('user');
+      let user_id = null;
+
+      if (userData) {
+        try {
+          const parsedData = JSON.parse(userData);
+          user_id = parsedData.user_id || null;
+          console.log("User id ", user_id);
+          if (!user_id) {
+            toast.error('No user_id found in local storage');
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing user data from local storage:', error);
+          toast.error('Invalid user data in local storage');
+          return;
+        }
+      } else {
+        toast.error('No user data found in local storage');
+        return;
+      }
+
+
+
       try {
         setLoading(true);
         console.log('Initiating fetch request to:', `${API_BASE_URL}/events/get_form_data.php`);
         const response = await axios.get(`${API_BASE_URL}/events/get_form_data.php`, {
+          params: {
+            user_id: user_id,
+          },
           headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken'),

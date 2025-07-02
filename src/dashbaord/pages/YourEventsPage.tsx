@@ -1,22 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-  Typography,
-  Box,
-  CircularProgress,
-  Paper,
-} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+// import './Style.css';
+import { toast } from 'react-toastify';
 
-// Environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost';
 
 // Types for event data
 interface Form {
@@ -69,30 +55,72 @@ interface Event {
   volunteers: Volunteer[];
 }
 
-const YourEventsPage = () => {
+const YourEventsPage: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | false>(false);
 
   // Handle accordion toggle
-  const handleChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+  const handleChange = (panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
     console.log(`Accordion ${panel} ${isExpanded ? 'expanded' : 'collapsed'}`);
+  };
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
+
+
+  // Get CSRF token from cookies
+  const getCookie = (name: string) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      const cookieValue = parts.pop()?.split(';').shift() || '';
+      console.log(`Retrieved CSRF token: ${cookieValue || 'none'}`);
+      return cookieValue;
+    }
+    console.log('No CSRF token found');
+    return '';
   };
 
   // Fetch events on mount
   useEffect(() => {
     const fetchEvents = async () => {
+
+
+      const userData = localStorage.getItem('user');
+      let user_id = null;
+
+      if (userData) {
+        try {
+          const parsedData = JSON.parse(userData);
+          user_id = parsedData.user_id || null;
+          console.log("User id ", user_id);
+          if (!user_id) {
+            toast.error('No user_id found in local storage');
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing user data from local storage:', error);
+          toast.error('Invalid user data in local storage');
+          return;
+        }
+      } else {
+        toast.error('No user data found in local storage');
+        return;
+      }
+
+
       try {
         setLoading(true);
-        console.log('Initiating fetch request to:', `${API_BASE_URL}/events/fetch_events.php`);
+        console.log('Initiating fetch request to:', `${API_BASE_URL}/events/get_events.php`);
         console.log('Request headers:', {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken') || 'none',
         });
 
         const response = await axios.get(`${API_BASE_URL}/events/get_events.php`, {
+          params: {user_id},
           headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken') || '',
@@ -156,183 +184,160 @@ const YourEventsPage = () => {
     fetchEvents();
   }, []);
 
-  // Get CSRF token from cookies
-  const getCookie = (name: string) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-      const cookieValue = parts.pop()?.split(';').shift() || '';
-      console.log(`Retrieved CSRF token: ${cookieValue || 'none'}`);
-      return cookieValue;
-    }
-    console.log('No CSRF token found');
-    return '';
-  };
-
   return (
-    <Box sx={{ padding: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Your Events
-      </Typography>
+    <div className="min-h-screen bg-gray-900 p-6">
+      <h1 className="text-3xl font-semibold text-white text-center mb-6">Your Events</h1>
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center mt-6">
+          <svg
+            className="animate-spin h-8 w-8 text-pink-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </div>
       ) : error ? (
-        <Typography color="error" sx={{ mt: 2 }}>
-          Error: {error}
-        </Typography>
+        <p className="text-red-500 text-center mt-6">Error: {error}</p>
       ) : events.length === 0 ? (
-        <Typography sx={{ mt: 2 }}>
-          No events found.
-        </Typography>
+        <p className="text-gray-300 text-center mt-6">No events found.</p>
       ) : (
-        <Box>
+        <div className="max-w-4xl mx-auto">
           {events.map((event) => (
-            <Accordion
+            <div
               key={event.event_id}
-              expanded={expanded === `event-${event.event_id}`}
-              onChange={handleChange(`event-${event.event_id}`)}
-              sx={{ mb: 2 }}
+              className="mb-4 bg-gray-800 rounded-lg shadow-md border border-gray-700"
             >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                aria-controls={`event-${event.event_id}-content`}
-                id={`event-${event.event_id}-header`}
+              <button
+                onClick={() => handleChange(`event-${event.event_id}`)({} as any, expanded !== `event-${event.event_id}`)}
+                className="w-full flex justify-between items-center p-4 text-left"
               >
-                <Typography variant="h6">{event.event_name}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Paper sx={{ p: 2 }}>
-                  <Table sx={{ minWidth: 650 }} aria-label={`event-${event.event_id}-details`}>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Event ID</TableCell>
-                        <TableCell>{event.event_id}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Start Date</TableCell>
-                        <TableCell>{new Date(event.start_datetime).toLocaleString()}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">End Date</TableCell>
-                        <TableCell>{new Date(event.end_datetime).toLocaleString()}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Type</TableCell>
-                        <TableCell>{event.event_type}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Category</TableCell>
-                        <TableCell>{event.event_category}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Location</TableCell>
-                        <TableCell>{event.venue_location}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Description</TableCell>
-                        <TableCell>{event.event_description}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Organization</TableCell>
-                        <TableCell>{event.organization_name}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Email</TableCell>
-                        <TableCell>{event.organization_email}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Phone</TableCell>
-                        <TableCell>{event.organization_phone}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Max Attendance</TableCell>
-                        <TableCell>{event.max_attendance}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Registration Deadline</TableCell>
-                        <TableCell>{event.registration_deadline}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Checkpoints</TableCell>
-                        <TableCell>{event.checkpoints}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Guest Registration Type</TableCell>
-                        <TableCell>{event.guest_registration_type}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Forms</TableCell>
-                        <TableCell>
-                          {event.forms.length > 0 ? (
-                            <ul>
-                              {event.forms.map((form) => (
-                                <li key={form.form_id}>
-                                  {form.form_name} (ID: {form.form_id}, Price: {form.price ?? 'Free'}, Fields: {form.fields})
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            'None'
-                          )}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Email Templates</TableCell>
-                        <TableCell>
-                          {event.email_templates.length > 0 ? (
-                            <ul>
-                              {event.email_templates.map((template) => (
-                                <li key={template.template_id}>
-                                  {template.template_type} (ID: {template.template_id})
-                                  <br />
-                                  Content: {template.email_content}
-                                  {template.branding_assets && <><br />Branding: {template.branding_assets}</>}
-                                  {template.facebook_url && <><br />Facebook: {template.facebook_url}</>}
-                                  {template.instagram_url && <><br />Instagram: {template.instagram_url}</>}
-                                  {template.twitter_url && <><br />Twitter: {template.twitter_url}</>}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            'None'
-                          )}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">Volunteers</TableCell>
-                        <TableCell>
-                          {event.volunteers.length > 0 ? (
-                            <ul>
-                              {event.volunteers.map((volunteer) => (
-                                <li key={volunteer.volunteer_id}>
-                                  ID: {volunteer.volunteer_id}, Checkpoint: {volunteer.checkpoint}
-                                  <br />
-                                  Name: {volunteer.volunteer_data?.name ?? 'Unknown'}
-                                  <br />
-                                  Email: {volunteer.volunteer_data?.email ?? 'Unknown'}
-                                  <br />
-                                  Level: {volunteer.volunteer_data?.level ?? 'Unknown'}
-                                  <br />
-                                  Sent: {volunteer.volunteer_data?.sent ? 'Yes' : 'No'}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            'None'
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </Paper>
-              </AccordionDetails>
-            </Accordion>
+                <h2 className="text-xl font-medium text-white">{event.event_name}</h2>
+                <svg
+                  className={`w-6 h-6 text-white transition-transform ${expanded === `event-${event.event_id}` ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              {expanded === `event-${event.event_id}` && (
+                <div className="p-4 bg-gray-800">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-gray-300"><strong>Event ID:</strong> {event.event_id}</p>
+                      <p className="text-gray-300"><strong>Start Date:</strong> {new Date(event.start_datetime).toLocaleString()}</p>
+                      <p className="text-gray-300"><strong>End Date:</strong> {new Date(event.end_datetime).toLocaleString()}</p>
+                      <p className="text-gray-300"><strong>Type:</strong> {event.event_type}</p>
+                      <p className="text-gray-300"><strong>Category:</strong> {event.event_category}</p>
+                      <p className="text-gray-300"><strong>Location:</strong> {event.venue_location}</p>
+                      <p className="text-gray-300"><strong>Description:</strong> {event.event_description}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-300"><strong>Organization:</strong> {event.organization_name}</p>
+                      <p className="text-gray-300"><strong>Email:</strong> {event.organization_email}</p>
+                      <p className="text-gray-300"><strong>Phone:</strong> {event.organization_phone}</p>
+                      <p className="text-gray-300"><strong>Max Attendance:</strong> {event.max_attendance}</p>
+                      <p className="text-gray-300"><strong>Registration Deadline:</strong> {event.registration_deadline}</p>
+                      <p className="text-gray-300"><strong>Checkpoints:</strong> {event.checkpoints}</p>
+                      <p className="text-gray-300"><strong>Guest Registration Type:</strong> {event.guest_registration_type}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="text-lg font-medium text-white mb-2">Forms</h3>
+                    {event.forms.length > 0 ? (
+                      <div className="space-y-2">
+                        {event.forms.map((form) => (
+                          <div
+                            key={form.form_id}
+                            className="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                          >
+                            <p className="text-gray-300"><strong>Name:</strong> {form.form_name}</p>
+                            <p className="text-gray-300"><strong>ID:</strong> {form.form_id}</p>
+                            <p className="text-gray-300"><strong>Price:</strong> {form.price ? `₹${form.price.toFixed(2)}` : 'Free'}</p>
+                            <p className="text-gray-300"><strong>Fields:</strong> {form.fields || 'None'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-300">None</p>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="text-lg font-medium text-white mb-2">Email Templates</h3>
+                    {event.email_templates.length > 0 ? (
+                      <div className="space-y-2">
+                        {event.email_templates.map((template) => (
+                          <div
+                            key={template.template_id}
+                            className="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                          >
+                            <p className="text-gray-300"><strong>Type:</strong> {template.template_type}</p>
+                            <p className="text-gray-300"><strong>ID:</strong> {template.template_id}</p>
+                            <p className="text-gray-300"><strong>Content:</strong> {template.email_content}</p>
+                            {template.branding_assets && (
+                              <p className="text-gray-300"><strong>Branding:</strong> {template.branding_assets}</p>
+                            )}
+                            {template.facebook_url && (
+                              <p className="text-gray-300"><strong>Facebook:</strong> <a href={template.facebook_url} className="text-pink-500 hover:text-pink-600">{template.facebook_url}</a></p>
+                            )}
+                            {template.instagram_url && (
+                              <p className="text-gray-300"><strong>Instagram:</strong> <a href={template.instagram_url} className="text-pink-500 hover:text-pink-600">{template.instagram_url}</a></p>
+                            )}
+                            {template.twitter_url && (
+                              <p className="text-gray-300"><strong>Twitter:</strong> <a href={template.twitter_url} className="text-pink-500 hover:text-pink-600">{template.twitter_url}</a></p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-300">None</p>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="text-lg font-medium text-white mb-2">Volunteers</h3>
+                    {event.volunteers.length > 0 ? (
+                      <div className="space-y-2">
+                        {event.volunteers.map((volunteer) => (
+                          <div
+                            key={volunteer.volunteer_id}
+                            className="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                          >
+                            <p className="text-gray-300"><strong>ID:</strong> {volunteer.volunteer_id}</p>
+                            <p className="text-gray-300"><strong>Checkpoint:</strong> {volunteer.checkpoint}</p>
+                            <p className="text-gray-300"><strong>Name:</strong> {volunteer.volunteer_data?.name ?? 'Unknown'}</p>
+                            <p className="text-gray-300"><strong>Email:</strong> {volunteer.volunteer_data?.email ?? 'Unknown'}</p>
+                            <p className="text-gray-300"><strong>Level:</strong> {volunteer.volunteer_data?.level ?? 'Unknown'}</p>
+                            <p className="text-gray-300"><strong>Sent:</strong> {volunteer.volunteer_data?.sent ? 'Yes' : 'No'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-300">None</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

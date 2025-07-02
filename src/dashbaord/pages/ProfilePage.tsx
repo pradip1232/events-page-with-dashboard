@@ -181,18 +181,7 @@ const ProfilePage: React.FC = () => {
                                 <span className="text-pink-500 text-xs mt-1">{errors.phone_number}</span>
                             )}
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-gray-300 text-sm md:text-base">Address</span>
-                            {editMode ? (
-                                <input
-                                    className="text-white bg-gray-700 border border-gray-600 rounded p-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
-                                    value={formData?.address || ''}
-                                    onChange={(e) => handleInputChange('address', e.target.value)}
-                                />
-                            ) : (
-                                <span className="text-white font-medium">{user.address}</span>
-                            )}
-                        </div>
+                        
                         <div className="flex flex-col">
                             <span className="text-gray-300 text-sm md:text-base">City</span>
                             {editMode ? (
@@ -217,18 +206,7 @@ const ProfilePage: React.FC = () => {
                                 <span className="text-white font-medium">{user.state}</span>
                             )}
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-gray-300 text-sm md:text-base">Country</span>
-                            {editMode ? (
-                                <input
-                                    className="text-white bg-gray-700 border border-gray-600 rounded p-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
-                                    value={formData?.country || ''}
-                                    onChange={(e) => handleInputChange('country', e.target.value)}
-                                />
-                            ) : (
-                                <span className="text-white font-medium">{user.country}</span>
-                            )}
-                        </div>
+                       
                     </div>
                 </div>
             ) : (

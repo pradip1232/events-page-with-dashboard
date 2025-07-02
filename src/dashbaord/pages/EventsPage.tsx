@@ -42,6 +42,7 @@ import { stepConnectorClasses } from '@mui/material/StepConnector';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 // Interfaces
 interface SavedForm {
@@ -163,7 +164,8 @@ const fieldTypes = [
 ];
 const indianStates = ['Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu'];
 const genderOptions = ['Male', 'Female', 'Other'];
-const templateTypes = ['Promotional', 'Informational', 'Reminder'];
+const templateTypes = ['Normal', 'Graphical'];
+
 const volunteerLevels = ['Beginner', 'Intermediate', 'Expert'];
 
 // Common styles
@@ -342,10 +344,34 @@ const EventsPage = () => {
     })(),
 
     onSubmit: async (values) => {
+
+
+      const userData = localStorage.getItem('user');
+      let user_id = null;
+
+      if (userData) {
+        try {
+          const parsedData = JSON.parse(userData);
+          user_id = parsedData.user_id || null;
+          console.log("User id ", user_id);
+          if (!user_id) {
+            toast.error('No user_id found in local storage');
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing user data from local storage:', error);
+          toast.error('Invalid user data in local storage');
+          return;
+        }
+      } else {
+        toast.error('No user data found in local storage');
+        return;
+      }
       if (activeStep === steps.length - 1) {
         try {
           // Structure data according to stepper
           const formData = {
+            user_id: user_id,
             step1: {
               eventType: values.eventType,
             },
@@ -384,8 +410,8 @@ const EventsPage = () => {
 
           // Log data to console
           console.log('Submitting Form Data:', JSON.stringify(formData, null, 2));
-
-          // Send data to server via Vite proxy
+        
+        
           const response = await axios.post(`${API_BASE_URL}/events/add_events.php`, formData, {
             headers: {
               'Content-Type': 'application/json',
@@ -696,7 +722,7 @@ const EventsPage = () => {
               sx={textFieldStyles}
             />
             <TextField
-              select
+              // select
               label="Guest Registration Type"
               name="guestRegistrationType"
               value={formik.values.guestRegistrationType}
@@ -706,8 +732,8 @@ const EventsPage = () => {
               fullWidth
               sx={textFieldStyles}
             >
-              <MenuItem value="open">Open</MenuItem>
-              <MenuItem value="invite-only">Invite Only</MenuItem>
+              {/* <MenuItem value="open">Open</MenuItem>
+              <MenuItem value="invite-only">Invite Only</MenuItem> */}
             </TextField>
           </Stack>
         );

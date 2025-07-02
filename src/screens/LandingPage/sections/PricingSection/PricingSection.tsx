@@ -49,9 +49,9 @@ export const PricingSection = (): JSX.Element => {
           {pricingPlans.map((plan, index) => (
             <Card
               key={index}
-              className={`flex flex-col items-center bg-[#18181c] rounded-[20px] relative ${index === 0 ? "w-[350px]" : "w-[391px]"}`}
+              className={`flex flex-col items-center bg-[#18181c] rounded-[20px] relative min-h-[580px] ${index === 0 ? "w-[350px]" : "w-[391px]"}`}
             >
-              <CardContent className="flex flex-col items-center px-0 py-[35px] w-full">
+              <CardContent className="flex flex-col items-center px-0 py-[35px] w-full justify-between flex-grow">
                 <div className="flex flex-col items-center gap-2.5 w-full">
                   <h3 className="font-card-headline font-[number:var(--card-headline-font-weight)] text-text text-[length:var(--card-headline-font-size)] text-center tracking-[var(--card-headline-letter-spacing)] leading-[var(--card-headline-line-height)] [font-style:var(--card-headline-font-style)]">
                     {plan.title}
@@ -83,7 +83,10 @@ export const PricingSection = (): JSX.Element => {
 
                     <div className="flex flex-col items-center gap-[17px] w-[287px] mt-4">
                       <Separator className="w-full h-px bg-text/20" />
-                      <Button className="px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90">
+                      <Button
+                        onClick={() => (window.location.href = "/dashboard")}
+
+                        className="px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90">
                         <span className="font-button-text font-[number:var(--button-text-font-weight)] text-text text-[length:var(--button-text-font-size)] tracking-[var(--button-text-letter-spacing)] leading-[var(--button-text-line-height)] whitespace-nowrap [font-style:var(--button-text-font-style)]">
                           {plan.buttonText}
                         </span>
@@ -105,7 +108,10 @@ export const PricingSection = (): JSX.Element => {
         </div>
       </div>
 
-      <Button className="inline-flex items-center gap-3 px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90">
+      <Button
+        onClick={() => (window.location.href = "/dashboard")}
+
+        className="inline-flex items-center gap-3 px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90">
         <span className="font-button-text font-[number:var(--button-text-font-weight)] text-text text-[length:var(--button-text-font-size)] tracking-[var(--button-text-letter-spacing)] leading-[var(--button-text-line-height)] whitespace-nowrap [font-style:var(--button-text-font-style)]">
           Get Custom Pricing
         </span>

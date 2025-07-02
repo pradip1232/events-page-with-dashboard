@@ -32,7 +32,10 @@ export const FooterSection = (): JSX.Element => {
             </span>
           </div>
 
-          <Button className="px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90 transition-opacity">
+          <Button
+            onClick={() => (window.location.href = "/dashboard")}
+
+            className="px-7 py-3 rounded-[5px] [background:linear-gradient(132deg,rgba(255,152,152,1)_0%,rgba(153,24,196,0.53)_100%)] hover:opacity-90 transition-opacity">
             <span className="font-button-text font-[number:var(--button-text-font-weight)] text-text text-[length:var(--button-text-font-size)] tracking-[var(--button-text-letter-spacing)] leading-[var(--button-text-line-height)]">
               Start Test Event — It&apos;s Free
             </span>

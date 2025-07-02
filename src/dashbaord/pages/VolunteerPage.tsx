@@ -62,10 +62,36 @@ const VolunteerPage: React.FC = () => {
   // Fetch events
   useEffect(() => {
     const fetchEvents = async () => {
+
+
+      const userData = localStorage.getItem('user');
+      let user_id = null;
+
+      if (userData) {
+        try {
+          const parsedData = JSON.parse(userData);
+          user_id = parsedData.user_id || null;
+          console.log("User id ", user_id);
+          if (!user_id) {
+            toast.error('No user_id found in local storage');
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing user data from local storage:', error);
+          toast.error('Invalid user data in local storage');
+          return;
+        }
+      } else {
+        toast.error('No user data found in local storage');
+        return;
+      }
+
       try {
         setLoading(true);
         console.log('Initiating fetch request to:', `${API_BASE_URL}/events/get_volunteer_data.php`);
         const response = await axios.get(`${API_BASE_URL}/events/get_volunteer_data.php`, {
+          params: { user_id },
+
           headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken'),
