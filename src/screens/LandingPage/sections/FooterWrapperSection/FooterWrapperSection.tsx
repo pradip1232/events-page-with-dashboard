@@ -4,9 +4,9 @@ import { Button } from "../../../../components/ui/button";
 export const FooterWrapperSection = (): JSX.Element => {
   // Footer navigation links data
   const footerLinks = [
-    { title: "Terms & Conditions", href: "#" },
-    { title: "Privacy Policy", href: "#" },
-    { title: "Refund Policy", href: "#" },
+    { title: "Terms & Conditions", href: "term-and-conditions" },
+    { title: "Privacy Policy", href: "privacy-and-policy" },
+    { title: "Refund Policy", href: "refund-policy" },
   ];
 
   // Social media icons data

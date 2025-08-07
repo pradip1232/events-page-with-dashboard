@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { styled } from '@mui/material/styles';
 import {
   Box,
@@ -31,6 +31,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Modal,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -44,12 +45,13 @@ import * as Yup from 'yup';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-// Interfaces
+// Interfaces and Constants
 interface SavedForm {
   id: number;
   formName: string;
   price?: number;
   fields: string[];
+  image?: File | null;
 }
 
 interface Volunteer {
@@ -66,6 +68,7 @@ interface FormValues {
   startDateTime: string | null;
   endDateTime: string | null;
   checkpoints: string;
+  checkpointNames: { [key: string]: string };
   guestRegistrationType: string;
   eventDescription: string;
   eventCategory: string;
@@ -80,7 +83,12 @@ interface FormValues {
   selectedFields: string[];
   customFields: { name: string; type: string }[];
   templateType: string;
+  emailSubject: string;
   emailContent: string;
+  emailHeader: string;
+  emailFooter: string;
+  emailLogo: File | null;
+  emailTitle: string;
   brandingAssets: File | null;
   facebookUrl: string;
   instagramUrl: string;
@@ -89,10 +97,8 @@ interface FormValues {
   sendingInvitations: { [key: string]: boolean };
 }
 
-// Step labels
-const steps = ['Event Type', 'Event Details', 'Additional Details', 'Form Creation', 'Email Template', 'Volunteer Invitation', 'Submission'];
+const steps = ['Event Type', 'Event Details', 'Form Creation', 'Email Template', 'Volunteer Invitation', 'Submission'];
 
-// Custom styled connectors and step icons
 const ColorlibConnector = styled(StepConnector)(({ theme }) => ({
   [`&.${stepConnectorClasses.alternativeLabel}`]: {
     top: 22,
@@ -136,7 +142,6 @@ const ColorlibStepIcon = (props: any) => {
     4: <SettingsIcon />,
     5: <GroupAddIcon />,
     6: <VideoLabelIcon />,
-    7: <SettingsIcon />,
   };
 
   return (
@@ -155,20 +160,18 @@ const ColorlibStepIcon = (props: any) => {
   );
 };
 
-// Constants
 const predefinedFields = ['Name', 'Email', 'Date of Birth', 'State', 'Gender', 'Phone Number'];
 const fieldTypes = [
-  { value: 'text', label: 'Text' },
+  { value: 'text', label: 'Short Answer' },
   { value: 'number', label: 'Number' },
-  { value: 'select', label: 'Select' },
+  { value: 'select', label: 'Dropdown' },
+  { value: 'checkbox', label: 'Checkbox' },
 ];
 const indianStates = ['Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu'];
 const genderOptions = ['Male', 'Female', 'Other'];
 const templateTypes = ['Normal', 'Graphical'];
-
 const volunteerLevels = ['Beginner', 'Intermediate', 'Expert'];
 
-// Common styles
 const textFieldStyles = {
   input: { color: 'white' },
   label: { color: 'white' },
@@ -181,7 +184,19 @@ const textFieldStyles = {
   '& .MuiSelect-icon': { color: 'white' },
 };
 
-// Volunteer TextField Component
+const modalStyle = {
+  position: 'absolute' as 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: 600,
+  bgcolor: '#2c2c2e',
+  border: '2px solid #ffffff44',
+  boxShadow: 24,
+  p: 4,
+  borderRadius: '8px',
+};
+
 const VolunteerTextField = ({
   label,
   value,
@@ -218,15 +233,20 @@ const VolunteerTextField = ({
   </TextField>
 );
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost';
-// console.log("API BASE URL ", API_BASE_URL);
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://clickngo.in';
 
 // Main Component
 const EventsPage = () => {
   const [activeStep, setActiveStep] = React.useState(0);
   const [savedForms, setSavedForms] = React.useState<SavedForm[]>([]);
   const [currentFormFields, setCurrentFormFields] = React.useState<string[]>([]);
-  const [activeTab, setActiveTab] = React.useState(0);
+  const [activeFormTab, setActiveFormTab] = React.useState(0);
+  const [formStates, setFormStates] = React.useState<
+    Array<{ formName: string; price: number | null; selectedFields: string[]; customFields: { name: string; type: string }[]; image: File | null }>
+  >([]);
+  const [isFormSaved, setIsFormSaved] = React.useState<boolean[]>([]);
+  const [isViewFormClicked, setIsViewFormClicked] = React.useState(false);
+  const [openPreviewModal, setOpenPreviewModal] = React.useState(false);
 
   const formik = useFormik<FormValues>({
     initialValues: {
@@ -235,6 +255,7 @@ const EventsPage = () => {
       startDateTime: null,
       endDateTime: null,
       checkpoints: '',
+      checkpointNames: {},
       guestRegistrationType: '',
       eventDescription: '',
       eventCategory: '',
@@ -249,7 +270,12 @@ const EventsPage = () => {
       selectedFields: [],
       customFields: [],
       templateType: '',
+      emailSubject: '',
       emailContent: '',
+      emailHeader: 'Welcome to Our Event',
+      emailFooter: 'Thank you for participating!',
+      emailLogo: null,
+      emailTitle: 'Event Invitation',
       brandingAssets: null,
       facebookUrl: '',
       instagramUrl: '',
@@ -272,9 +298,9 @@ const EventsPage = () => {
           checkpoints: Yup.number()
             .required('Number of checkpoints is required')
             .min(1, 'At least one checkpoint is required'),
-          guestRegistrationType: Yup.string().required('Guest registration type is required'),
-        }),
-        Yup.object({
+          guestRegistrationType: Yup.number()
+            .required('Number of forms is required')
+            .min(1, 'At least one form is required'),
           eventDescription: Yup.string().required('Event description is required'),
           eventCategory: Yup.string().required('Event category is required'),
           venueLocation: Yup.string().required('Venue location is required'),
@@ -288,15 +314,24 @@ const EventsPage = () => {
           maxAttendance: Yup.number()
             .required('Maximum attendance is required')
             .min(1, 'At least one attendee is required'),
+          checkpointNames: Yup.object().test(
+            'checkpoint-names-length',
+            'Checkpoint names must match the number of checkpoints',
+            (value) => {
+              const checkpointCount = parseInt(formik.values.checkpoints) || 0;
+              return Object.keys(value).length === checkpointCount && Object.values(value).every((name) => name.trim() !== '');
+            }
+          ),
         }),
         Yup.object({
           formName: Yup.string().required('Form name is required'),
           price: Yup.number().when('eventType', {
-            is: 'paid',
-            then: Yup.number()
-              .required('Price is required for paid events')
-              .min(0, 'Price must be non-negative'),
-            otherwise: Yup.number().nullable(),
+            is: (eventType: string) => eventType === 'paid',
+            then: (schema: any) =>
+              schema
+                .required('Price is required for paid events')
+                .min(0, 'Price must be non-negative'),
+            otherwise: (schema: any) => schema.nullable(),
           }),
           customFields: Yup.array().of(
             Yup.object({
@@ -307,7 +342,27 @@ const EventsPage = () => {
         }),
         Yup.object({
           templateType: Yup.string().required('Template type is required'),
+          emailSubject: Yup.string().when('templateType', {
+            is: 'Normal',
+            then: (schema: any) => schema.required('Email subject is required'),
+            otherwise: (schema: any) => schema.nullable(),
+          }),
           emailContent: Yup.string().required('Email content is required'),
+          emailHeader: Yup.string().when('templateType', {
+            is: 'Graphical',
+            then: (schema: any) => schema.required('Email header is required'),
+            otherwise: (schema: any) => schema.nullable(),
+          }),
+          emailFooter: Yup.string().when('templateType', {
+            is: 'Graphical',
+            then: (schema: any) => schema.required('Email footer is required'),
+            otherwise: (schema: any) => schema.nullable(),
+          }),
+          emailTitle: Yup.string().when('templateType', {
+            is: 'Graphical',
+            then: (schema: any) => schema.required('Email title is required'),
+            otherwise: (schema: any) => schema.nullable(),
+          }),
           facebookUrl: Yup.string().url('Invalid URL format').nullable(),
           instagramUrl: Yup.string().url('Invalid URL format').nullable(),
           twitterUrl: Yup.string().url('Invalid URL format').nullable(),
@@ -342,9 +397,12 @@ const EventsPage = () => {
       ];
       return validationSchemas[activeStep];
     })(),
-
     onSubmit: async (values) => {
-
+      console.log(`Submitting step ${activeStep + 1}. Values:`, JSON.stringify(values, null, 2));
+      console.log(`Saved forms: ${savedForms.length}, Required forms: ${parseInt(values.guestRegistrationType)}`);
+      console.log('Formik errors:', formik.errors);
+      console.log('Formik touched:', formik.touched);
+      console.log('Formik isValid:', formik.isValid);
 
       const userData = localStorage.getItem('user');
       let user_id = null;
@@ -353,7 +411,7 @@ const EventsPage = () => {
         try {
           const parsedData = JSON.parse(userData);
           user_id = parsedData.user_id || null;
-          console.log("User id ", user_id);
+          console.log('User id:', user_id);
           if (!user_id) {
             toast.error('No user_id found in local storage');
             return;
@@ -367,9 +425,20 @@ const EventsPage = () => {
         toast.error('No user data found in local storage');
         return;
       }
+
+      const savedData = {
+        activeStep,
+        formikValues: { ...values, brandingAssets: null, emailLogo: null },
+        savedForms,
+        formStates,
+        isFormSaved,
+        isViewFormClicked,
+      };
+      localStorage.setItem('eventFormData', JSON.stringify(savedData));
+      console.log('Saved to localStorage:', savedData);
+
       if (activeStep === steps.length - 1) {
         try {
-          // Structure data according to stepper
           const formData = {
             user_id: user_id,
             step1: {
@@ -380,9 +449,8 @@ const EventsPage = () => {
               startDateTime: values.startDateTime || '',
               endDateTime: values.endDateTime || '',
               checkpoints: parseInt(values.checkpoints) || 0,
-              guestRegistrationType: values.guestRegistrationType,
-            },
-            step3: {
+              checkpointNames: values.checkpointNames,
+              guestRegistrationType: parseInt(values.guestRegistrationType) || 0,
               eventDescription: values.eventDescription,
               eventCategory: values.eventCategory,
               venueLocation: values.venueLocation,
@@ -392,26 +460,29 @@ const EventsPage = () => {
               maxAttendance: parseInt(values.maxAttendance) || 0,
               registrationDeadline: values.registrationDeadline || '',
             },
-            step4: {
+            step3: {
               savedForms,
             },
-            step5: {
+            step4: {
               templateType: values.templateType,
+              emailSubject: values.emailSubject,
               emailContent: values.emailContent,
+              emailHeader: values.emailHeader,
+              emailFooter: values.emailFooter,
+              emailLogo: values.emailLogo ? values.emailLogo.name : null,
+              emailTitle: values.emailTitle,
               brandingAssets: values.brandingAssets ? values.brandingAssets.name : null,
               facebookUrl: values.facebookUrl || '',
               instagramUrl: values.instagramUrl || '',
               twitterUrl: values.twitterUrl || '',
             },
-            step6: {
+            step5: {
               volunteers: values.volunteers,
             },
           };
 
-          // Log data to console
           console.log('Submitting Form Data:', JSON.stringify(formData, null, 2));
-        
-        
+
           const response = await axios.post(`${API_BASE_URL}/events/add_events.php`, formData, {
             headers: {
               'Content-Type': 'application/json',
@@ -419,25 +490,60 @@ const EventsPage = () => {
             },
           });
 
-          // Log response for debugging
           console.log('Server Response:', response.data);
 
-          // Check if message exists
           if (!response.data.message) {
             throw new Error('No message in server response');
           }
 
-          alert('Event created successfully: Event ID ' + (response.data.event_id || 'N/A'));
+          toast.success(`Event created successfully: Event ID ${response.data.event_id || 'N/A'}`, {
+            position: 'top-right',
+            autoClose: 3000,
+          });
           setActiveStep(0);
           formik.resetForm();
           setSavedForms([]);
           setCurrentFormFields([]);
+          setFormStates([]);
+          setActiveFormTab(0);
+          setIsFormSaved([]);
+          setIsViewFormClicked(false);
+          setOpenPreviewModal(false);
+          localStorage.removeItem('eventFormData');
         } catch (error: any) {
           console.error('Submission Error:', error);
-          alert('Error creating event: ' + (error.response?.data?.error || error.message || 'Server error. Please try again.'));
+          toast.error(error.response?.data?.error || error.message || 'Server error. Please try again.', {
+            position: 'top-right',
+            autoClose: 3000,
+          });
         }
-      } else if (activeStep === 3 && savedForms.length === 0) {
-        alert('Please create one form then you can go to the next step');
+      } else if (activeStep === 2) {
+        const requiredForms = parseInt(values.guestRegistrationType) || 0;
+        console.log('Step 2 Submit - savedForms:', savedForms, 'requiredForms:', requiredForms, 'isFormSaved:', isFormSaved, 'isViewFormClicked:', isViewFormClicked);
+        if (savedForms.length < requiredForms || !isFormSaved.every((saved) => saved)) {
+          toast.error(`Please save all ${requiredForms} form(s) before proceeding.`, {
+            position: 'top-right',
+            autoClose: 3000,
+          });
+          return;
+        }
+        if (!isViewFormClicked) {
+          toast.error('Please view at least one saved form before proceeding.', {
+            position: 'top-right',
+            autoClose: 3000,
+          });
+          return;
+        }
+        setActiveStep((prev) => prev + 1);
+        formik.setValues({
+          ...formik.values,
+          formName: '',
+          price: null,
+          selectedFields: [],
+          customFields: [],
+        });
+        setIsViewFormClicked(false);
+        formik.setSubmitting(false);
       } else {
         setActiveStep((prev) => prev + 1);
       }
@@ -459,14 +565,54 @@ const EventsPage = () => {
     return cookieValue;
   }, []);
 
+  React.useEffect(() => {
+    const savedData = localStorage.getItem('eventFormData');
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setActiveStep(parsedData.activeStep || 0);
+        formik.setValues({
+          ...formik.values,
+          ...parsedData.formikValues,
+          brandingAssets: null,
+          emailLogo: null,
+        });
+        setSavedForms(parsedData.savedForms || []);
+        setFormStates(parsedData.formStates || []);
+        setIsFormSaved(parsedData.isFormSaved || []);
+        setIsViewFormClicked(parsedData.isViewFormClicked || false);
+        setCurrentFormFields(parsedData.formStates?.[0]?.selectedFields || []);
+        console.log('Loaded from localStorage:', parsedData);
+      } catch (error) {
+        console.error('Error loading from localStorage:', error);
+      }
+    }
+  }, []);
+
   const handleBack = React.useCallback(() => {
     setActiveStep((prev) => prev - 1);
-    if (activeStep === 3) {
-      formik.setFieldValue('selectedFields', []);
-      formik.setFieldValue('customFields', []);
+    if (activeStep === 2) {
+      formik.setValues({
+        ...formik.values,
+        formName: '',
+        price: null,
+        selectedFields: [],
+        customFields: [],
+      });
       setCurrentFormFields([]);
+      setIsViewFormClicked(false);
     }
-  }, [activeStep, formik]);
+    const savedData = {
+      activeStep: activeStep - 1,
+      formikValues: { ...formik.values, brandingAssets: null, emailLogo: null },
+      savedForms,
+      formStates,
+      isFormSaved,
+      isViewFormClicked,
+    };
+    localStorage.setItem('eventFormData', JSON.stringify(savedData));
+    console.log('Saved to localStorage on back:', savedData);
+  }, [activeStep, formik, savedForms, formStates, isFormSaved, isViewFormClicked]);
 
   const handleFieldSelection = React.useCallback(
     (field: string) => {
@@ -474,8 +620,13 @@ const EventsPage = () => {
         ? formik.values.selectedFields.filter((f) => f !== field)
         : [...formik.values.selectedFields, field];
       formik.setFieldValue('selectedFields', selected);
+      setFormStates((prev) =>
+        prev.map((form, index) =>
+          index === activeFormTab ? { ...form, selectedFields: selected } : form
+        )
+      );
     },
-    [formik]
+    [formik, activeFormTab]
   );
 
   const handleCustomFieldChange = React.useCallback(
@@ -483,15 +634,26 @@ const EventsPage = () => {
       const updatedFields = [...formik.values.customFields];
       updatedFields[index] = { ...updatedFields[index], [key]: value };
       formik.setFieldValue('customFields', updatedFields);
+      setFormStates((prev) =>
+        prev.map((form, i) =>
+          i === activeFormTab ? { ...form, customFields: updatedFields } : form
+        )
+      );
     },
-    [formik]
+    [formik, activeFormTab]
   );
 
   const addCustomField = React.useCallback(() => {
     const lastField = formik.values.customFields[formik.values.customFields.length - 1];
     if (lastField && lastField.name.trim() === '') return;
-    formik.setFieldValue('customFields', [...formik.values.customFields, { name: '', type: 'text' }]);
-  }, [formik]);
+    const newCustomFields = [...formik.values.customFields, { name: '', type: 'text' }];
+    formik.setFieldValue('customFields', newCustomFields);
+    setFormStates((prev) =>
+      prev.map((form, i) =>
+        i === activeFormTab ? { ...form, customFields: newCustomFields } : form
+      )
+    );
+  }, [formik, activeFormTab]);
 
   const handleSubmitSelection = React.useCallback(() => {
     const allFields = [
@@ -499,36 +661,118 @@ const EventsPage = () => {
       ...formik.values.customFields.map((f) => f.name).filter((name) => name.trim() !== ''),
     ];
     setCurrentFormFields(allFields);
-  }, [formik]);
+    setFormStates((prev) =>
+      prev.map((form, i) =>
+        i === activeFormTab ? { ...form, selectedFields: allFields } : form
+      )
+    );
+    setOpenPreviewModal(true);
+  }, [formik, activeFormTab]);
 
   const handleSaveForm = React.useCallback(() => {
+    if (!formik.values.formName) {
+      toast.error('Form name is required', { position: 'top-right', autoClose: 3000 });
+      return;
+    }
+    if (formik.values.eventType === 'paid' && (formik.values.price === null || formik.values.price < 0)) {
+      toast.error('Price is required for paid events', { position: 'top-right', autoClose: 3000 });
+      return;
+    }
     const newForm = {
       id: savedForms.length + 1,
       formName: formik.values.formName,
       price: formik.values.eventType === 'paid' ? Number(formik.values.price) : undefined,
       fields: currentFormFields,
+      image: formStates[activeFormTab]?.image || null,
     };
-    setSavedForms([...savedForms, newForm]);
-    formik.setFieldValue('formName', '');
-    formik.setFieldValue('price', null);
-    formik.setFieldValue('selectedFields', []);
-    formik.setFieldValue('customFields', []);
+    setSavedForms((prev) => {
+      const updated = [...prev];
+      if (updated[activeFormTab]) {
+        updated[activeFormTab] = newForm;
+      } else {
+        updated.push(newForm);
+      }
+      return updated;
+    });
+    setIsFormSaved((prev) => {
+      const updated = [...prev];
+      updated[activeFormTab] = true;
+      return updated;
+    });
+    setFormStates((prev) =>
+      prev.map((form, i) =>
+        i === activeFormTab
+          ? { formName: '', price: null, selectedFields: [], customFields: [], image: null }
+          : form
+      )
+    );
+    formik.setValues({
+      ...formik.values,
+      formName: '',
+      price: null,
+      selectedFields: [],
+      customFields: [],
+    });
     setCurrentFormFields([]);
-    alert('Form saved successfully!');
-    if (savedForms.length === 0) {
-      setActiveStep((prev) => prev + 1);
+    const formUrl = `${API_BASE_URL}/forms/${newForm.id}`;
+    console.log(`Generated Form URL: ${formUrl}`);
+    console.log(`Creating database table for form: ${newForm.formName}`);
+    toast.success('Form saved successfully!', { position: 'top-right', autoClose: 3000 });
+
+    const savedData = {
+      activeStep,
+      formikValues: {
+        ...formik.values,
+        formName: '',
+        price: null,
+        selectedFields: [],
+        customFields: [],
+        brandingAssets: null,
+        emailLogo: null,
+      },
+      savedForms: [...savedForms, ...(savedForms[activeFormTab] ? [] : [newForm])],
+      formStates,
+      isFormSaved: [...isFormSaved, ...(isFormSaved[activeFormTab] ? [] : [true])],
+      isViewFormClicked,
+    };
+    localStorage.setItem('eventFormData', JSON.stringify(savedData));
+
+    const requiredForms = parseInt(formik.values.guestRegistrationType) || 0;
+    if (activeFormTab < requiredForms - 1) {
+      const nextTab = activeFormTab + 1;
+      setActiveFormTab(nextTab);
+      const nextFormState = formStates[nextTab] || {
+        formName: '',
+        price: null,
+        selectedFields: [],
+        customFields: [],
+        image: null,
+      };
+      formik.setValues({
+        ...formik.values,
+        formName: nextFormState.formName,
+        price: nextFormState.price,
+        selectedFields: nextFormState.selectedFields,
+        customFields: nextFormState.customFields,
+      });
+      setCurrentFormFields(nextFormState.selectedFields);
     }
-  }, [formik, currentFormFields, savedForms]);
+  }, [formik, currentFormFields, activeFormTab, savedForms, formStates, isFormSaved, isViewFormClicked]);
 
   const handleViewForm = React.useCallback(
-    (form: SavedForm) => {
+    (form: SavedForm, index: number) => {
       setCurrentFormFields(form.fields);
-      formik.setFieldValue('formName', form.formName);
-      formik.setFieldValue('price', form.price || null);
-      formik.setFieldValue('selectedFields', form.fields);
-      formik.setFieldValue('customFields', []);
+      formik.setValues({
+        ...formik.values,
+        formName: form.formName,
+        price: form.price || null,
+        selectedFields: form.fields,
+        customFields: formStates[index]?.customFields || [],
+      });
+      setActiveFormTab(index);
+      setIsViewFormClicked(true);
     },
-    [formik]
+    [formik, formStates]
   );
 
   const handleAddVolunteer = (checkpoint: string) => {
@@ -563,7 +807,10 @@ const EventsPage = () => {
   const handleSendInvitation = async (checkpoint: string, volIndex: number, volunteer: Volunteer) => {
     const key = `${checkpoint}_${volIndex}`;
     if (!formik.values.eventName || !formik.values.startDateTime || !formik.values.endDateTime) {
-      alert('Please fill in event name, start date, and end date in Event Details step.');
+      toast.error('Please fill in event name, start date, and end date in Event Details step.', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
 
@@ -577,7 +824,7 @@ const EventsPage = () => {
         eventName: formik.values.eventName,
         startDateTime: formik.values.startDateTime,
         endDateTime: formik.values.endDateTime,
-        checkpoint,
+        checkpoint: formik.values.checkpointNames[checkpoint] || `Checkpoint ${checkpoint}`,
         volunteer,
       };
       const response = await axios.post(`${API_BASE_URL}/events/send_mail_volunteer.php`, payload, {
@@ -593,13 +840,16 @@ const EventsPage = () => {
           ...formik.values.volunteers,
           [checkpoint]: updatedVolunteers,
         });
-        alert('Invitation sent successfully!');
+        toast.success('Invitation sent successfully!', { position: 'top-right', autoClose: 3000 });
       } else {
-        alert('Error sending invitation: ' + response.data.message);
+        toast.error('Error sending invitation: ' + response.data.message, {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || 'Server error. Please try again.';
-      alert('Error sending invitation: ' + errorMessage);
+      toast.error('Error sending invitation: ' + errorMessage, { position: 'top-right', autoClose: 3000 });
     } finally {
       formik.setFieldValue('sendingInvitations', {
         ...formik.values.sendingInvitations,
@@ -616,6 +866,115 @@ const EventsPage = () => {
       volunteer.password.length >= 8
     );
   };
+
+  const getFieldComponent = (field: string, index: number) => {
+    const customField = formik.values.customFields.find((f) => f.name === field);
+    const fieldType = customField ? customField.type : predefinedFields.includes(field) ? 'text' : 'text';
+
+    switch (field) {
+      case 'State':
+        return (
+          <TextField
+            fullWidth
+            label="State"
+            select
+            value=""
+            sx={textFieldStyles}
+            disabled={isFormSaved[activeFormTab]}
+          >
+            {indianStates.map((state) => (
+              <MenuItem key={state} value={state}>
+                {state}
+              </MenuItem>
+            ))}
+          </TextField>
+        );
+      case 'Gender':
+        return (
+          <TextField
+            fullWidth
+            label="Gender"
+            select
+            value=""
+            sx={textFieldStyles}
+            disabled={isFormSaved[activeFormTab]}
+          >
+            {genderOptions.map((gender) => (
+              <MenuItem key={gender} value={gender}>
+                {gender}
+              </MenuItem>
+            ))}
+          </TextField>
+        );
+      case 'Phone Number':
+        return (
+          <TextField
+            fullWidth
+            label="Phone Number"
+            type="text"
+            value=""
+            sx={textFieldStyles}
+            disabled={isFormSaved[activeFormTab]}
+          />
+        );
+      default:
+        if (fieldType === 'checkbox') {
+          return (
+            <FormControlLabel
+              control={<Checkbox sx={{ color: 'white', '&.Mui-checked': { color: 'white' } }} />}
+              label={<Typography sx={{ color: 'white' }}>{field}</Typography>}
+              disabled={isFormSaved[activeFormTab]}
+            />
+          );
+        } else if (fieldType === 'select') {
+          return (
+            <TextField
+              fullWidth
+              label={field}
+              select
+              value=""
+              sx={textFieldStyles}
+              disabled={isFormSaved[activeFormTab]}
+            >
+              <MenuItem value="option1">Option 1</MenuItem>
+              <MenuItem value="option2">Option 2</MenuItem>
+              <MenuItem value="option3">Option 3</MenuItem>
+            </TextField>
+          );
+        } else {
+          return (
+            <TextField
+              fullWidth
+              label={field}
+              type={fieldType === 'number' ? 'number' : 'text'}
+              value=""
+              sx={textFieldStyles}
+              disabled={isFormSaved[activeFormTab]}
+            />
+          );
+        }
+    }
+  };
+
+  React.useEffect(() => {
+    const formCount = parseInt(formik.values.guestRegistrationType) || 0;
+    if (formCount > 0 && formStates.length !== formCount) {
+      setFormStates(
+        Array(formCount).fill({
+          formName: '',
+          price: null,
+          selectedFields: [],
+          customFields: [],
+          image: null,
+        })
+      );
+      setIsFormSaved(Array(formCount).fill(false));
+      setSavedForms([]);
+      setActiveFormTab(0);
+      setIsViewFormClicked(false);
+      console.log(`Initialized formStates and isFormSaved for ${formCount} forms`);
+    }
+  }, [formik.values.guestRegistrationType, formStates.length]);
 
   const renderStepContent = (step: number) => {
     switch (step) {
@@ -715,31 +1074,53 @@ const EventsPage = () => {
               name="checkpoints"
               type="number"
               value={formik.values.checkpoints}
-              onChange={formik.handleChange}
+              onChange={(e) => {
+                formik.handleChange(e);
+                const count = parseInt(e.target.value) || 0;
+                const newCheckpointNames = { ...formik.values.checkpointNames };
+                for (let i = 1; i <= count; i++) {
+                  if (!newCheckpointNames[i.toString()]) {
+                    newCheckpointNames[i.toString()] = `Checkpoint ${i}`;
+                  }
+                }
+                Object.keys(newCheckpointNames).forEach((key) => {
+                  if (parseInt(key) > count) {
+                    delete newCheckpointNames[key];
+                  }
+                });
+                formik.setFieldValue('checkpointNames', newCheckpointNames);
+              }}
               error={!!formik.errors.checkpoints}
               helperText={formik.errors.checkpoints}
               fullWidth
               sx={textFieldStyles}
             />
+            {Array.from({ length: parseInt(formik.values.checkpoints) || 0 }, (_, i) => i + 1).map((checkpoint) => (
+              <TextField
+                key={checkpoint}
+                label={`Checkpoint ${checkpoint} Name`}
+                name={`checkpointNames.${checkpoint}`}
+                value={formik.values.checkpointNames[checkpoint.toString()] || ''}
+                onChange={(e) => {
+                  formik.setFieldValue(`checkpointNames.${checkpoint}`, e.target.value);
+                }}
+                error={!!formik.errors.checkpointNames}
+                helperText={formik.errors.checkpointNames ? 'Checkpoint name is required' : ''}
+                fullWidth
+                sx={textFieldStyles}
+              />
+            ))}
             <TextField
-              // select
-              label="Guest Registration Type"
+              label="Number of Forms"
               name="guestRegistrationType"
+              type="number"
               value={formik.values.guestRegistrationType}
               onChange={formik.handleChange}
               error={!!formik.errors.guestRegistrationType}
               helperText={formik.errors.guestRegistrationType}
               fullWidth
               sx={textFieldStyles}
-            >
-              {/* <MenuItem value="open">Open</MenuItem>
-              <MenuItem value="invite-only">Invite Only</MenuItem> */}
-            </TextField>
-          </Stack>
-        );
-      case 2:
-        return (
-          <Stack spacing={2}>
+            />
             <TextField
               label="Event Description"
               name="eventDescription"
@@ -832,7 +1213,8 @@ const EventsPage = () => {
             />
           </Stack>
         );
-      case 3:
+      case 2:
+        const formCount = parseInt(formik.values.guestRegistrationType) || 0;
         return (
           <CardContent sx={{ padding: 4, backgroundColor: '#18181c' }}>
             <Typography
@@ -843,248 +1225,419 @@ const EventsPage = () => {
             >
               Form Creation
             </Typography>
-            <Box sx={{ maxWidth: 600, margin: 'auto' }}>
-              <Stack spacing={2} mb={3}>
-                <TextField
-                  label="Form Name"
-                  name="formName"
-                  value={formik.values.formName}
-                  onChange={formik.handleChange}
-                  error={!!formik.errors.formName}
-                  helperText={formik.errors.formName}
-                  fullWidth
-                  sx={textFieldStyles}
-                />
-                {formik.values.eventType === 'paid' && (
-                  <TextField
-                    label="Price"
-                    name="price"
-                    type="number"
-                    value={formik.values.price || ''}
-                    onChange={formik.handleChange}
-                    error={!!formik.errors.price}
-                    helperText={formik.errors.price}
-                    fullWidth
-                    sx={textFieldStyles}
-                  />
-                )}
-              </Stack>
-              {currentFormFields.length === 0 ? (
-                <>
-                  <Typography variant="h5" gutterBottom sx={{ color: 'white' }}>
-                    Select Fields for the Form
-                  </Typography>
-                  <Grid container spacing={1}>
-                    {predefinedFields.map((field, index) => (
-                      <Grid item xs={6} key={index}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={formik.values.selectedFields.includes(field)}
-                              onChange={() => handleFieldSelection(field)}
-                              sx={{ color: 'white', '&.Mui-checked': { color: 'white' } }}
-                            />
-                          }
-                          label={<Typography sx={{ color: 'white' }}>{field}</Typography>}
+            {formCount > 0 ? (
+              <>
+                <Tabs
+                  value={activeFormTab}
+                  onChange={(_, newValue) => {
+                    setActiveFormTab(newValue);
+                    const formState = formStates[newValue] || {
+                      formName: '',
+                      price: null,
+                      selectedFields: [],
+                      customFields: [],
+                      image: null,
+                    };
+                    formik.setValues({
+                      ...formik.values,
+                      formName: formState.formName,
+                      price: formState.price,
+                      selectedFields: formState.selectedFields,
+                      customFields: formState.customFields,
+                    });
+                    setCurrentFormFields(formState.selectedFields);
+                    console.log(`Switched to form tab ${newValue}. Form state:`, formState);
+                  }}
+                  sx={{
+                    mb: 3,
+                    '& .MuiTab-root': { color: 'white' },
+                    '& .Mui-selected': { color: 'white', fontWeight: 'bold' },
+                    '& .MuiTabs-indicator': { backgroundColor: '#f27121' },
+                  }}
+                >
+                  {Array.from({ length: formCount }, (_, i) => (
+                    <Tab key={i} label={`Form ${i + 1}`} />
+                  ))}
+                </Tabs>
+                <Box sx={{ maxWidth: 600, margin: 'auto', backgroundColor: '#2c2c2e', p: 3, borderRadius: '8px' }}>
+                  {!isFormSaved[activeFormTab] ? (
+                    <>
+                      <Stack spacing={2} mb={3}>
+                        <TextField
+                          label="Form Name"
+                          name="formName"
+                          value={formStates[activeFormTab]?.formName || formik.values.formName}
+                          onChange={(e) => {
+                            formik.handleChange(e);
+                            setFormStates((prev) =>
+                              prev.map((form, i) =>
+                                i === activeFormTab ? { ...form, formName: e.target.value } : form
+                              )
+                            );
+                          }}
+                          error={!!formik.errors.formName}
+                          helperText={formik.errors.formName}
+                          fullWidth
+                          sx={textFieldStyles}
                         />
-                      </Grid>
-                    ))}
-                    <Typography variant="h6" gutterBottom sx={{ width: '100%', mt: 2, color: 'white' }}>
-                      Custom Fields
-                    </Typography>
-                    {formik.values.customFields.map((field, index) => (
-                      <Grid container spacing={1} key={index} sx={{ mb: 1 }}>
-                        <Grid item xs={6}>
+                        {formik.values.eventType === 'paid' && (
                           <TextField
-                            label="Field Name"
-                            value={field.name}
-                            onChange={(e) => handleCustomFieldChange(index, 'name', e.target.value)}
-                            error={!!formik.errors.customFields?.[index]?.name}
-                            helperText={formik.errors.customFields?.[index]?.name}
+                            label="Price"
+                            name="price"
+                            type="number"
+                            value={formStates[activeFormTab]?.price || formik.values.price || ''}
+                            onChange={(e) => {
+                              formik.handleChange(e);
+                              setFormStates((prev) =>
+                                prev.map((form, i) =>
+                                  i === activeFormTab ? { ...form, price: Number(e.target.value) || null } : form
+                                )
+                              );
+                            }}
+                            error={!!formik.errors.price}
+                            helperText={formik.errors.price}
                             fullWidth
                             sx={textFieldStyles}
                           />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <TextField
-                            select
-                            label="Field Type"
-                            value={field.type}
-                            onChange={(e) => handleCustomFieldChange(index, 'type', e.target.value)}
-                            error={!!formik.errors.customFields?.[index]?.type}
-                            helperText={formik.errors.customFields?.[index]?.type}
-                            fullWidth
-                            sx={textFieldStyles}
-                          >
-                            {fieldTypes.map((item) => (
-                              <MenuItem key={item.value} value={item.value}>
-                                {item.label}
-                              </MenuItem>
+                        )}
+                        <TextField
+                          label="Form Image (Logo/Banner, Optional)"
+                          type="file"
+                          name="formImage"
+                          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                            const files = event.target.files;
+                            setFormStates((prev) =>
+                              prev.map((form, i) =>
+                                i === activeFormTab ? { ...form, image: files ? files[0] : null } : form
+                              )
+                            );
+                          }}
+                          InputLabelProps={{ shrink: true }}
+                          fullWidth
+                          sx={textFieldStyles}
+                        />
+                      </Stack>
+                      {currentFormFields.length === 0 ? (
+                        <>
+                          <Typography variant="h5" gutterBottom sx={{ color: 'white', mb: 2 }}>
+                            Select Fields for Form {activeFormTab + 1}
+                          </Typography>
+                          <Card sx={{ backgroundColor: '#3a3a3e', p: 2, borderRadius: '8px', mb: 2 }}>
+                            <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
+                              Predefined Fields
+                            </Typography>
+                            <Grid container spacing={1}>
+                              {predefinedFields.map((field, index) => (
+                                <Grid item xs={6} key={index}>
+                                  <FormControlLabel
+                                    control={
+                                      <Checkbox
+                                        checked={formik.values.selectedFields.includes(field)}
+                                        onChange={() => handleFieldSelection(field)}
+                                        sx={{ color: 'white', '&.Mui-checked': { color: '#f27121' } }}
+                                      />
+                                    }
+                                    label={<Typography sx={{ color: 'white' }}>{field}</Typography>}
+                                  />
+                                </Grid>
+                              ))}
+                            </Grid>
+                          </Card>
+                          <Card sx={{ backgroundColor: '#3a3a3e', p: 2, borderRadius: '8px' }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: 'white', mb: 2 }}>
+                              Custom Fields
+                            </Typography>
+                            {formik.values.customFields.map((field, index) => (
+                              <Grid container spacing={1} key={index} sx={{ mb: 1 }}>
+                                <Grid item xs={6}>
+                                  <TextField
+                                    label="Field Name"
+                                    value={field.name}
+                                    onChange={(e) => handleCustomFieldChange(index, 'name', e.target.value)}
+                                    error={!!formik.errors.customFields?.[index]?.name}
+                                    helperText={formik.errors.customFields?.[index]?.name}
+                                    fullWidth
+                                    sx={textFieldStyles}
+                                  />
+                                </Grid>
+                                <Grid item xs={6}>
+                                  <TextField
+                                    select
+                                    label="Field Type"
+                                    value={field.type}
+                                    onChange={(e) => handleCustomFieldChange(index, 'type', e.target.value)}
+                                    error={!!formik.errors.customFields?.[index]?.type}
+                                    helperText={formik.errors.customFields?.[index]?.type}
+                                    fullWidth
+                                    sx={textFieldStyles}
+                                  >
+                                    {fieldTypes.map((item) => (
+                                      <MenuItem key={item.value} value={item.value}>
+                                        {item.label}
+                                      </MenuItem>
+                                    ))}
+                                  </TextField>
+                                </Grid>
+                              </Grid>
                             ))}
-                          </TextField>
-                        </Grid>
-                      </Grid>
-                    ))}
-                    <Grid item xs={12}>
-                      <IconButton
-                        color="primary"
-                        onClick={addCustomField}
-                        disabled={
-                          formik.values.customFields.length > 0 &&
-                          formik.values.customFields[formik.values.customFields.length - 1].name.trim() === ''
-                        }
-                        sx={{ color: 'white' }}
-                      >
-                        <AddIcon />
-                      </IconButton>
-                    </Grid>
-                  </Grid>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleSubmitSelection}
-                    sx={{ mt: 2 }}
-                  >
-                    Generate Form
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Typography variant="h5" gutterBottom sx={{ color: 'white' }}>
-                    Generated Form
-                  </Typography>
-                  <Typography sx={{ color: 'white', mb: 2 }}>
-                    <strong>Form Name:</strong> {formik.values.formName}
-                  </Typography>
-                  {formik.values.eventType === 'paid' && (
-                    <Typography sx={{ color: 'white', mb: 2 }}>
-                      <strong>Price:</strong> {formik.values.price}
-                    </Typography>
-                  )}
-                  <Grid container spacing={2}>
-                    {currentFormFields.map((field, index) => {
-                      const customField = formik.values.customFields.find((f) => f.name === field);
-                      const label = customField ? `${field} (${customField.type})` : field;
-                      return (
-                        <Grid item xs={12} key={index}>
-                          {field === 'State' ? (
-                            <TextField
-                              fullWidth
-                              label="State"
-                              select
-                              value=""
-                              sx={textFieldStyles}
-                            >
-                              {indianStates.map((state) => (
-                                <MenuItem key={state} value={state}>
-                                  {state}
-                                </MenuItem>
+                            <Grid item xs={12}>
+                              <Button
+                                variant="outlined"
+                                startIcon={<AddIcon />}
+                                onClick={addCustomField}
+                                disabled={
+                                  formik.values.customFields.length > 0 &&
+                                  formik.values.customFields[formik.values.customFields.length - 1].name.trim() === ''
+                                }
+                                sx={{ mt: 1, color: 'white', borderColor: 'white' }}
+                              >
+                                Add Custom Field
+                              </Button>
+                            </Grid>
+                          </Card>
+                          <Button
+                            variant="contained"
+                            onClick={handleSubmitSelection}
+                            disabled={formik.values.selectedFields.length === 0 && formik.values.customFields.every(f => f.name.trim() === '')}
+                            sx={{ mt: 3, backgroundColor: '#f27121', '&:hover': { backgroundColor: '#e94057' } }}
+                          >
+                            Preview Form
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Typography variant="h5" gutterBottom sx={{ color: 'white', mb: 2 }}>
+                            Preview Form {activeFormTab + 1}
+                          </Typography>
+                          <Card sx={{ backgroundColor: '#3a3a3e', p: 3, borderRadius: '8px', mb: 2 }}>
+                            <Typography sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                              Form Name: {formStates[activeFormTab]?.formName || formik.values.formName}
+                            </Typography>
+                            {formik.values.eventType === 'paid' && (
+                              <Typography sx={{ color: 'white', mb: 2 }}>
+                                Price: {formStates[activeFormTab]?.price || formik.values.price}
+                              </Typography>
+                            )}
+                            {formStates[activeFormTab]?.image && (
+                              <Box sx={{ mb: 2, textAlign: 'center' }}>
+                                <img
+                                  src={URL.createObjectURL(formStates[activeFormTab].image!)}
+                                  alt="Form Image"
+                                  style={{ maxWidth: '100%', maxHeight: 150, borderRadius: '8px' }}
+                                />
+                              </Box>
+                            )}
+                            <Grid container spacing={2}>
+                              {currentFormFields.map((field, index) => (
+                                <Grid item xs={12} key={index}>
+                                  {getFieldComponent(field, index)}
+                                </Grid>
                               ))}
-                            </TextField>
-                          ) : field === 'Gender' ? (
-                            <TextField
-                              fullWidth
-                              label="Gender"
-                              select
-                              value=""
-                              sx={textFieldStyles}
+                            </Grid>
+                          </Card>
+                          <Stack direction="row" spacing={2}>
+                            <Button
+                              variant="contained"
+                              onClick={handleSaveForm}
+                              sx={{ backgroundColor: '#f27121', '&:hover': { backgroundColor: '#e94057' } }}
                             >
-                              {genderOptions.map((gender) => (
-                                <MenuItem key={gender} value={gender}>
-                                  {gender}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          ) : field === 'Phone Number' ? (
-                            <TextField
-                              fullWidth
-                              label={label}
-                              type="text"
-                              value=""
-                              sx={textFieldStyles}
-                            />
-                          ) : (
-                            <TextField
-                              fullWidth
-                              label={label}
-                              type={customField?.type === 'number' ? 'number' : 'text'}
-                              value=""
-                              sx={textFieldStyles}
-                            />
-                          )}
-                        </Grid>
-                      );
-                    })}
-                  </Grid>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleSaveForm}
-                    sx={{ mt: 2, mr: 1 }}
-                  >
-                    Save Form
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => {
-                      setCurrentFormFields([]);
-                      formik.setFieldValue('formName', '');
-                      formik.setFieldValue('price', null);
-                      formik.setFieldValue('selectedFields', []);
-                      formik.setFieldValue('customFields', []);
-                    }}
-                    sx={{ mt: 2, color: 'white', borderColor: 'white' }}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              )}
-              {savedForms.length > 0 && (
-                <>
-                  <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
-                    Saved Forms
-                  </Typography>
-                  {savedForms.map((form) => (
-                    <Card
-                      key={form.id}
-                      sx={{
-                        mt: 2,
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        backgroundColor: '#2c2c2e',
-                      }}
-                    >
-                      <CardContent>
-                        <Typography sx={{ color: 'white' }}>
-                          <strong>Form Name:</strong> {form.formName}
+                              Save Form
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              onClick={() => {
+                                setCurrentFormFields([]);
+                                setFormStates((prev) =>
+                                  prev.map((form, i) =>
+                                    i === activeFormTab
+                                      ? { ...form, formName: '', price: null, selectedFields: [], customFields: [], image: null }
+                                      : form
+                                  )
+                                );
+                                formik.setValues({
+                                  ...formik.values,
+                                  formName: '',
+                                  price: null,
+                                  selectedFields: [],
+                                  customFields: [],
+                                });
+                              }}
+                              sx={{ color: 'white', borderColor: 'white' }}
+                            >
+                              Edit
+                            </Button>
+                          </Stack>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h5" gutterBottom sx={{ color: 'white', mb: 2 }}>
+                        Form {activeFormTab + 1} (Saved)
+                      </Typography>
+                      <Card sx={{ backgroundColor: '#3a3a3e', p: 3, borderRadius: '8px', mb: 2 }}>
+                        <Typography sx={{ color: 'white', mb: 1, fontWeight: 'bold' }}>
+                          Form Name: {savedForms[activeFormTab]?.formName || 'N/A'}
                         </Typography>
-                        {form.price !== undefined && (
-                          <Typography sx={{ color: 'white' }}>
-                            <strong>Price:</strong> {form.price}
+                        <Typography sx={{ color: 'white', mb: 1 }}>
+                          Form URL: {`${API_BASE_URL}/your-events/${savedForms[activeFormTab]?.formId || 'N/A'}`}
+                        </Typography>
+                        {formik.values.eventType === 'paid' && (
+                          <Typography sx={{ color: 'white', mb: 1 }}>
+                            Price: {savedForms[activeFormTab]?.price ?? 'N/A'}
                           </Typography>
                         )}
-                        <Typography sx={{ color: 'white' }}>
-                          <strong>Fields:</strong> {form.fields.join(', ')}
+                        {savedForms[activeFormTab]?.image && (
+                          <Box sx={{ mb: 2, textAlign: 'center' }}>
+                            <img
+                              src={URL.createObjectURL(savedForms[activeFormTab].image!)}
+                              alt="Form Image"
+                              style={{ maxWidth: '100%', maxHeight: 150, borderRadius: '8px' }}
+                            />
+                          </Box>
+                        )}
+                        <Typography sx={{ color: 'white', mb: 2 }}>
+                          Fields: {savedForms[activeFormTab]?.fields.join(', ') || 'None'}
                         </Typography>
-                        <Button
-                          variant="outlined"
-                          color="primary"
-                          size="small"
-                          onClick={() => handleViewForm(form)}
-                          sx={{ mt: 1, color: 'white', borderColor: 'white' }}
+                        <Grid container spacing={2}>
+                          {savedForms[activeFormTab]?.fields.map((field, index) => (
+                            <Grid item xs={12} key={index}>
+                              {getFieldComponent(field, index)}
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </Card>
+                    </>
+                  )}
+                  {savedForms.length > 0 && (
+                    <>
+                      <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+                        Saved Forms
+                      </Typography>
+                      {savedForms.map((form, index) => (
+                        <Card
+                          key={form.id}
+                          sx={{
+                            mt: 2,
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            backgroundColor: '#3a3a3e',
+                          }}
                         >
-                          View Form
-                        </Button>
-                      </CardContent>
+                          <CardContent>
+                            <Typography sx={{ color: 'white', fontWeight: 'bold' }}>
+                              Form Name: {form.formName}
+                            </Typography>
+                            <Typography sx={{ color: 'white' }}>
+                              Form URL: {`${API_BASE_URL}/your-events/${form.formId}`}
+                            </Typography>
+                            {form.price !== undefined && (
+                              <Typography sx={{ color: 'white' }}>
+                                Price: {form.price}
+                              </Typography>
+                            )}
+                            {form.image && (
+                              <Box sx={{ my: 1, textAlign: 'center' }}>
+                                <img
+                                  src={URL.createObjectURL(form.image)}
+                                  alt="Form Image"
+                                  style={{ maxWidth: '100%', maxHeight: 100, borderRadius: '4px' }}
+                                />
+                              </Box>
+                            )}
+                            <Typography sx={{ color: 'white' }}>
+                              Fields: {form.fields.join(', ')}
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              onClick={() => handleViewForm(form, index)}
+                              sx={{ mt: 1, color: 'white', borderColor: 'white' }}
+                            >
+                              View Form
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </>
+                  )}
+                </Box>
+                <Modal
+                  open={openPreviewModal}
+                  onClose={() => setOpenPreviewModal(false)}
+                  aria-labelledby="form-preview-modal"
+                >
+                  <Box sx={{ ...modalStyle, backgroundColor: '#3a3a3e' }}>
+                    <Typography id="form-preview-modal" variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                      Form Preview: {formStates[activeFormTab]?.formName || formik.values.formName}
+                    </Typography>
+                    {formStates[activeFormTab]?.image && (
+                      <Box sx={{ mb: 2, textAlign: 'center' }}>
+                        <img
+                          src={URL.createObjectURL(formStates[activeFormTab].image!)}
+                          alt="Form Image"
+                          style={{ maxWidth: '100%', maxHeight: 150, borderRadius: '8px' }}
+                        />
+                      </Box>
+                    )}
+                    <Card sx={{ backgroundColor: '#2c2c2e', p: 2, borderRadius: '8px' }}>
+                      <Grid container spacing={2}>
+                        {currentFormFields.map((field, index) => (
+                          <Grid item xs={12} key={index}>
+                            {getFieldComponent(field, index)}
+                          </Grid>
+                        ))}
+                      </Grid>
                     </Card>
-                  ))}
-                </>
-              )}
-            </Box>
+                    <Stack direction="row" spacing={2} sx={{ mt: 3, justifyContent: 'flex-end' }}>
+                      <Button
+                        variant="contained"
+                        onClick={() => {
+                          handleSaveForm();
+                          setOpenPreviewModal(false);
+                        }}
+                        sx={{ backgroundColor: '#f27121', '&:hover': { backgroundColor: '#e94057' } }}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          setCurrentFormFields([]);
+                          setFormStates((prev) =>
+                            prev.map((form, i) =>
+                              i === activeFormTab
+                                ? { ...form, formName: '', price: null, selectedFields: [], customFields: [], image: null }
+                                : form
+                            )
+                          );
+                          formik.setValues({
+                            ...formik.values,
+                            formName: '',
+                            price: null,
+                            selectedFields: [],
+                            customFields: [],
+                          });
+                          setOpenPreviewModal(false);
+                        }}
+                        sx={{ color: 'white', borderColor: 'white' }}
+                      >
+                        Edit
+                      </Button>
+                    </Stack>
+                  </Box>
+                </Modal>
+              </>
+            ) : (
+              <Typography sx={{ color: 'white' }}>
+                Please specify the number of forms in Event Details.
+              </Typography>
+            )}
           </CardContent>
         );
-      case 4:
+
+
+      case 3:
+        console.log(`Email Template Token Cost: ${formik.values.templateType === 'Normal' ? 1 : 1.5} tokens`);
         return (
           <Box sx={{ maxWidth: 600, margin: 'auto' }}>
             <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
@@ -1108,18 +1661,89 @@ const EventsPage = () => {
                   </MenuItem>
                 ))}
               </TextField>
-              <TextField
-                label="Email Content"
-                name="emailContent"
-                multiline
-                rows={5}
-                value={formik.values.emailContent}
-                onChange={formik.handleChange}
-                error={!!formik.errors.emailContent}
-                helperText={formik.errors.emailContent}
-                fullWidth
-                sx={{ ...textFieldStyles, textarea: { color: 'white' } }}
-              />
+              {formik.values.templateType === 'Normal' ? (
+                <>
+                  <TextField
+                    label="Email Subject"
+                    name="emailSubject"
+                    value={formik.values.emailSubject}
+                    onChange={formik.handleChange}
+                    error={!!formik.errors.emailSubject}
+                    helperText={formik.errors.emailSubject}
+                    fullWidth
+                    sx={textFieldStyles}
+                  />
+                  <TextField
+                    label="Email Content"
+                    name="emailContent"
+                    multiline
+                    rows={5}
+                    value={formik.values.emailContent}
+                    onChange={formik.handleChange}
+                    error={!!formik.errors.emailContent}
+                    helperText={formik.errors.emailContent}
+                    fullWidth
+                    sx={{ ...textFieldStyles, textarea: { color: 'white' } }}
+                  />
+                </>
+              ) : (
+                <>
+                  <TextField
+                    label="Email Header"
+                    name="emailHeader"
+                    value={formik.values.emailHeader}
+                    onChange={formik.handleChange}
+                    error={!!formik.errors.emailHeader}
+                    helperText={formik.errors.emailHeader}
+                    fullWidth
+                    sx={textFieldStyles}
+                  />
+                  <TextField
+                    label="Email Title"
+                    name="emailTitle"
+                    value={formik.values.emailTitle}
+                    onChange={formik.handleChange}
+                    error={!!formik.errors.emailTitle}
+                    helperText={formik.errors.emailTitle}
+                    fullWidth
+                    sx={textFieldStyles}
+                  />
+                  <TextField
+                    label="Email Content"
+                    name="emailContent"
+                    multiline
+                    rows={5}
+                    value={formik.values.emailContent}
+                    onChange={formik.handleChange}
+                    error={!!formik.errors.emailContent}
+                    helperText={formik.errors.emailContent}
+                    fullWidth
+                    sx={{ ...textFieldStyles, textarea: { color: 'white' } }}
+                  />
+                  <TextField
+                    label="Email Footer"
+                    name="emailFooter"
+                    value={formik.values.emailFooter}
+                    onChange={formik.handleChange}
+                    error={!!formik.errors.emailFooter}
+                    helperText={formik.errors.emailFooter}
+                    fullWidth
+                    sx={textFieldStyles}
+                  />
+                  <TextField
+                    label="Email Logo"
+                    type="file"
+                    name="emailLogo"
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                      const files = event.target.files;
+                      formik.setFieldValue('emailLogo', files ? files[0] : null);
+                    }}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    sx={textFieldStyles}
+                  />
+                </>
+              )}
               <TextField
                 label="Branding Assets"
                 type="file"
@@ -1171,9 +1795,34 @@ const EventsPage = () => {
                 <Typography sx={{ color: 'white' }}>
                   <strong>Template Type:</strong> {formik.values.templateType || 'Not set'}
                 </Typography>
-                <Typography sx={{ color: 'white', mt: 1 }}>
-                  <strong>Email Content:</strong> {formik.values.emailContent || 'No content'}
-                </Typography>
+                {formik.values.templateType === 'Normal' ? (
+                  <>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Subject:</strong> {formik.values.emailSubject || 'Not set'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Content:</strong> {formik.values.emailContent || 'No content'}
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Header:</strong> {formik.values.emailHeader || 'Not set'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Title:</strong> {formik.values.emailTitle || 'Not set'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Content:</strong> {formik.values.emailContent || 'No content'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Footer:</strong> {formik.values.emailFooter || 'Not set'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Logo:</strong> {formik.values.emailLogo ? formik.values.emailLogo.name : 'None'}
+                    </Typography>
+                  </>
+                )}
                 <Typography sx={{ color: 'white', mt: 1 }}>
                   <strong>Branding Assets:</strong> {formik.values.brandingAssets ? formik.values.brandingAssets.name : 'None'}
                 </Typography>
@@ -1190,7 +1839,7 @@ const EventsPage = () => {
             </Card>
           </Box>
         );
-      case 5:
+      case 4:
         const checkpointCount = parseInt(formik.values.checkpoints) || 0;
         const volunteerFields = [
           {
@@ -1232,8 +1881,8 @@ const EventsPage = () => {
             {checkpointCount > 0 ? (
               <>
                 <Tabs
-                  value={activeTab}
-                  onChange={(_, newValue) => setActiveTab(newValue)}
+                  value={activeFormTab}
+                  onChange={(_, newValue) => setActiveFormTab(newValue)}
                   sx={{
                     mb: 3,
                     '& .MuiTab-root': { color: 'white' },
@@ -1242,11 +1891,11 @@ const EventsPage = () => {
                   }}
                 >
                   {Array.from({ length: checkpointCount }, (_, i) => (
-                    <Tab key={i} label={`Checkpoint ${i + 1}`} />
+                    <Tab key={i} label={formik.values.checkpointNames[(i + 1).toString()] || `Checkpoint ${i + 1}`} />
                   ))}
                 </Tabs>
                 {Array.from({ length: checkpointCount }, (_, i) => i + 1).map((checkpoint, index) => (
-                  <Box key={checkpoint} hidden={activeTab !== index}>
+                  <Box key={checkpoint} hidden={activeFormTab !== index}>
                     <Button
                       variant="contained"
                       color="primary"
@@ -1309,7 +1958,7 @@ const EventsPage = () => {
                       );
                     })}
                     <Typography variant="h6" sx={{ mt: 3, color: 'white' }}>
-                      Volunteer Status for Checkpoint {index + 1}
+                      Volunteer Status for {formik.values.checkpointNames[checkpoint.toString()] || `Checkpoint ${index + 1}`}
                     </Typography>
                     <TableContainer component={Paper} sx={{ mt: 2, backgroundColor: '#2c2c2e' }}>
                       <Table sx={{ minWidth: 650 }} aria-label="volunteer status table">
@@ -1352,17 +2001,236 @@ const EventsPage = () => {
             )}
           </Box>
         );
-      case 6:
+      case 5:
         return (
-          <Box>
-            <Typography variant="h6" sx={{ color: 'white' }}>
-              Submit Event
+          <Box sx={{ maxWidth: 800, margin: 'auto' }}>
+            <Typography variant="h6" sx={{ color: 'white', mb: 3, textAlign: 'center', fontWeight: 'bold' }}>
+              Submission Summary
             </Typography>
-            <Typography variant="body1" sx={{ color: 'white' }}>
-              Click Submit to create the event. All data, including forms, email template, and volunteer invitations, will be sent to the server.
-            </Typography>
+            <Card sx={{ backgroundColor: '#2c2c2e', borderRadius: '8px', mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                  Step 1: Event Type
+                </Typography>
+                <Typography sx={{ color: 'white' }}>
+                  <strong>Event Type:</strong> {formik.values.eventType.charAt(0).toUpperCase() + formik.values.eventType.slice(1)}
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ backgroundColor: '#2c2c2e', borderRadius: '8px', mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                  Step 2: Event Details
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Event Name:</strong> {formik.values.eventName || 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Start Date & Time:</strong> {formik.values.startDateTime ? new Date(formik.values.startDateTime).toLocaleString() : 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>End Date & Time:</strong> {formik.values.endDateTime ? new Date(formik.values.endDateTime).toLocaleString() : 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Checkpoints:</strong> {formik.values.checkpoints || '0'}
+                    </Typography>
+                  </Grid>
+                  {Object.entries(formik.values.checkpointNames).map(([key, value]) => (
+                    <Grid item xs={12} sm={6} key={key}>
+                      <Typography sx={{ color: 'white' }}>
+                        <strong>Checkpoint {key} Name:</strong> {value || `Checkpoint ${key}`}
+                      </Typography>
+                    </Grid>
+                  ))}
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Number of Forms:</strong> {formik.values.guestRegistrationType || '0'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Event Description:</strong> {formik.values.eventDescription || 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Event Category:</strong> {formik.values.eventCategory || 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Venue Location:</strong> {formik.values.venueLocation || 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Organization Name:</strong> {formik.values.organizationName || 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Organization Email:</strong> {formik.values.organizationEmail || 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Organization Phone:</strong> {formik.values.organizationPhone || 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Maximum Attendance:</strong> {formik.values.maxAttendance || 'Not set'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography sx={{ color: 'white' }}>
+                      <strong>Registration Deadline:</strong> {formik.values.registrationDeadline ? new Date(formik.values.registrationDeadline).toLocaleString() : 'Not set'}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ backgroundColor: '#2c2c2e', borderRadius: '8px', mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                  Step 3: Form Creation
+                </Typography>
+                {savedForms.length > 0 ? (
+                  savedForms.map((form, index) => (
+                    <Box key={form.id} sx={{ mb: 2 }}>
+                      <Typography sx={{ color: 'white', fontWeight: 'bold' }}>
+                        Form {index + 1}: {form.formName}
+                      </Typography>
+                      <Typography sx={{ color: 'white' }}>
+                        <strong>Form URL:</strong> {`${API_BASE_URL}/your-events/${form.formId}`}
+                      </Typography>
+                      {form.price !== undefined && (
+                        <Typography sx={{ color: 'white' }}>
+                          <strong>Price:</strong> {form.price}
+                        </Typography>
+                      )}
+                      {form.image && (
+                        <Box sx={{ my: 1, textAlign: 'center' }}>
+                          <img
+                            src={URL.createObjectURL(form.image)}
+                            alt="Form Image"
+                            style={{ maxWidth: '100%', maxHeight: 100, borderRadius: '4px' }}
+                          />
+                        </Box>
+                      )}
+                      <Typography sx={{ color: 'white' }}>
+                        <strong>Fields:</strong> {form.fields.join(', ') || 'None'}
+                      </Typography>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography sx={{ color: 'white' }}>No forms created.</Typography>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card sx={{ backgroundColor: '#2c2c2e', borderRadius: '8px', mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                  Step 4: Email Template
+                </Typography>
+                <Typography sx={{ color: 'white' }}>
+                  <strong>Template Type:</strong> {formik.values.templateType || 'Not set'}
+                </Typography>
+                {formik.values.templateType === 'Normal' ? (
+                  <>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Subject:</strong> {formik.values.emailSubject || 'Not set'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Content:</strong> {formik.values.emailContent || 'No content'}
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Header:</strong> {formik.values.emailHeader || 'Not set'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Title:</strong> {formik.values.emailTitle || 'Not set'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Content:</strong> {formik.values.emailContent || 'No content'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Footer:</strong> {formik.values.emailFooter || 'Not set'}
+                    </Typography>
+                    <Typography sx={{ color: 'white', mt: 1 }}>
+                      <strong>Email Logo:</strong> {formik.values.emailLogo ? formik.values.emailLogo.name : 'None'}
+                    </Typography>
+                  </>
+                )}
+                <Typography sx={{ color: 'white', mt: 1 }}>
+                  <strong>Branding Assets:</strong> {formik.values.brandingAssets ? formik.values.brandingAssets.name : 'None'}
+                </Typography>
+                <Typography sx={{ color: 'white', mt: 1 }}>
+                  <strong>Facebook URL:</strong> {formik.values.facebookUrl || 'None'}
+                </Typography>
+                <Typography sx={{ color: 'white', mt: 1 }}>
+                  <strong>Instagram URL:</strong> {formik.values.instagramUrl || 'None'}
+                </Typography>
+                <Typography sx={{ color: 'white', mt: 1 }}>
+                  <strong>Twitter URL:</strong> {formik.values.twitterUrl || 'None'}
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ backgroundColor: '#2c2c2e', borderRadius: '8px', mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                  Step 5: Volunteer Invitation
+                </Typography>
+                {Array.from({ length: parseInt(formik.values.checkpoints) || 0 }, (_, i) => i + 1).map((checkpoint, index) => (
+                  <Box key={checkpoint}>
+                    <Typography sx={{ color: 'white', fontWeight: 'bold', mb: 1 }}>
+                      {formik.values.checkpointNames[checkpoint.toString()] || `Checkpoint ${checkpoint}`}
+                    </Typography>
+                    <TableContainer component={Paper} sx={{ backgroundColor: '#3a3a3e', mb: 2 }}>
+                      <Table aria-label={`volunteer table for checkpoint ${checkpoint}`}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ color: 'white' }}>Name</TableCell>
+                            <TableCell sx={{ color: 'white' }}>Email</TableCell>
+                            <TableCell sx={{ color: 'white' }}>Level</TableCell>
+                            <TableCell sx={{ color: 'white' }}>Status</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {(formik.values.volunteers[checkpoint.toString()] || []).map((volunteer, volIndex) => (
+                            <TableRow key={volIndex}>
+                              <TableCell sx={{ color: 'white' }}>{volunteer.name || 'N/A'}</TableCell>
+                              <TableCell sx={{ color: 'white' }}>{volunteer.email || 'N/A'}</TableCell>
+                              <TableCell sx={{ color: 'white' }}>{volunteer.level || 'N/A'}</TableCell>
+                              <TableCell sx={{ color: 'white' }}>
+                                {volunteer.sent ? <CheckCircleIcon color="success" /> : 'Not Sent'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                ))}
+              </CardContent>
+            </Card>
           </Box>
         );
+
       default:
         return null;
     }
@@ -1370,18 +2238,7 @@ const EventsPage = () => {
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#18181c' }}>
-      <Box
-        sx={{
-          flex: '0 0 20%',
-          backgroundColor: '#18181c',
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '20px',
-          marginBottom: '20px',
-          px: '16px',
-        }}
-      >
+      <Box>
         <Stepper
           alternativeLabel
           activeStep={activeStep}
@@ -1401,28 +2258,29 @@ const EventsPage = () => {
       </Box>
       <Box sx={{ flex: 1, backgroundColor: '#18181c', p: 3 }}>
         <form onSubmit={formik.handleSubmit} style={{ color: 'white' }}>
-          <Box sx={{ minHeight: '60vh' }}>{renderStepContent(activeStep)}</Box>
-          <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 2 }}>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              variant="outlined"
-              sx={{ color: 'white', borderColor: 'white' }}
-            >
-              Back
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={
-                !formik.isValid ||
-                (activeStep === 3 && savedForms.length === 0)
-              }
-              sx={{ backgroundColor: '#1976d2', '&:hover': { backgroundColor: '#115293' } }}
-            >
-              {activeStep === steps.length - 1 ? 'Submit' : 'Next'}
-            </Button>
-          </Stack>
+          <Box sx={{ minHeight: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <Box>{renderStepContent(activeStep)}</Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+              <Button
+                color="inherit"
+                disabled={activeStep === 0 || formik.isSubmitting}
+                onClick={handleBack}
+                sx={{ color: 'white', borderColor: 'white' }}
+                variant="outlined"
+              >
+                Back
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                type="submit"
+                disabled={formik.isSubmitting}
+              >
+                {activeStep === steps.length - 1 ? 'Submit' : 'Next'}
+                {formik.isSubmitting && <CircularProgress size={16} sx={{ ml: 1, color: 'white' }} />}
+              </Button>
+            </Box>
+          </Box>
         </form>
       </Box>
     </Box>

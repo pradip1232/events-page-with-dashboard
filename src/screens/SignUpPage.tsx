@@ -44,7 +44,7 @@ const indianStates = [
     { value: 'Puducherry', label: 'Puducherry' },
 ];
 
-const stateCities: Record<string, { value: string; label: string }[]> = {
+const stateCities = {
     'Andhra Pradesh': [
         { value: 'Visakhapatnam', label: 'Visakhapatnam' },
         { value: 'Vijayawada', label: 'Vijayawada' },
@@ -196,7 +196,7 @@ const stateCities: Record<string, { value: string; label: string }[]> = {
     ],
 };
 
-const SignUpPage: React.FC = () => {
+const SignUpPage = () => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -211,7 +211,6 @@ const SignUpPage: React.FC = () => {
     const [availableCities, setAvailableCities] = useState<{ value: string; label: string }[]>([]);
     const navigate = useNavigate();
 
-    // Check if already logged in
     useEffect(() => {
         const userData = localStorage.getItem('user');
         if (userData) {
@@ -221,7 +220,6 @@ const SignUpPage: React.FC = () => {
         }
     }, [navigate]);
 
-    // Update cities when state changes
     useEffect(() => {
         if (formData.state) {
             const cities = [...(stateCities[formData.state] || []), { value: 'Other', label: 'Other' }];
@@ -232,94 +230,60 @@ const SignUpPage: React.FC = () => {
         }
     }, [formData.state]);
 
-    // Validate form fields
     const validateField = (field: keyof typeof formData, value: string) => {
         const newErrors: Partial<Record<keyof typeof formData, string>> = { ...errors };
 
         switch (field) {
             case 'name':
-                if (!value.trim()) {
-                    newErrors.name = 'Name is required';
-                } else if (!/^[a-zA-Z\s]{2,50}$/.test(value)) {
-                    newErrors.name = 'Name must be 2-50 characters, letters and spaces only';
-                } else {
-                    delete newErrors.name;
-                }
+                if (!value.trim()) newErrors.name = 'Name is required';
+                else if (!/^[a-zA-Z\s]{2,50}$/.test(value)) newErrors.name = 'Name must be 2-50 characters, letters and spaces only';
+                else delete newErrors.name;
                 break;
             case 'email':
-                if (!value.trim()) {
-                    newErrors.email = 'Email is required';
-                } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(value)) {
-                    newErrors.email = 'Invalid email format';
-                } else {
-                    delete newErrors.email;
-                }
+                if (!value.trim()) newErrors.email = 'Email is required';
+                else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(value)) newErrors.email = 'Invalid email format';
+                else delete newErrors.email;
                 break;
             case 'phone_number':
-                if (!value.trim()) {
-                    newErrors.phone_number = 'Phone number is required';
-                } else if (!/^\d{10}$/.test(value)) {
-                    newErrors.phone_number = 'Phone number must be exactly 10 digits';
-                } else {
-                    delete newErrors.phone_number;
-                }
+                if (!value.trim()) newErrors.phone_number = 'Phone number is required';
+                else if (!/^\d{10}$/.test(value)) newErrors.phone_number = 'Phone number must be exactly 10 digits';
+                else delete newErrors.phone_number;
                 break;
             case 'state':
-                if (!value) {
-                    newErrors.state = 'State is required';
-                } else {
-                    delete newErrors.state;
-                }
+                if (!value) newErrors.state = 'State is required';
+                else delete newErrors.state;
                 break;
             case 'city':
-                if (!value) {
-                    newErrors.city = 'City is required';
-                } else {
-                    delete newErrors.city;
-                }
+                if (!value) newErrors.city = 'City is required';
+                else delete newErrors.city;
                 break;
             case 'custom_city':
-                if (formData.city === 'Other' && !value.trim()) {
-                    newErrors.custom_city = 'Custom city is required when "Other" is selected';
-                } else if (formData.city === 'Other' && !/^[a-zA-Z\s]{2,50}$/.test(value)) {
-                    newErrors.custom_city = 'Custom city must be 2-50 characters, letters and spaces only';
-                } else {
-                    delete newErrors.custom_city;
-                }
+                if (formData.city === 'Other' && !value.trim()) newErrors.custom_city = 'Custom city is required when "Other" is selected';
+                else if (formData.city === 'Other' && !/^[a-zA-Z\s]{2,50}$/.test(value)) newErrors.custom_city = 'Custom city must be 2-50 characters, letters and spaces only';
+                else delete newErrors.custom_city;
                 break;
             case 'password':
-                if (!value) {
-                    newErrors.password = 'Password is required';
-                } else if (value.length < 8) {
-                    newErrors.password = 'Password must be at least 8 characters';
-                } else {
-                    delete newErrors.password;
-                }
+                if (!value) newErrors.password = 'Password is required';
+                else if (value.length < 8) newErrors.password = 'Password must be at least 8 characters';
+                else delete newErrors.password;
                 break;
             case 'confirmPassword':
-                if (!value) {
-                    newErrors.confirmPassword = 'Confirm Password is required';
-                } else if (value !== formData.password) {
-                    newErrors.confirmPassword = 'Passwords do not match';
-                } else {
-                    delete newErrors.confirmPassword;
-                }
+                if (!value) newErrors.confirmPassword = 'Confirm Password is required';
+                else if (value !== formData.password) newErrors.confirmPassword = 'Passwords do not match';
+                else delete newErrors.confirmPassword;
                 break;
         }
 
         setErrors(newErrors);
     };
 
-    // Handle input change with live validation
     const handleChange = (field: keyof typeof formData) => (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const value = event.target.value;
         setFormData((prev) => ({ ...prev, [field]: value }));
         validateField(field, value);
     };
 
-    // Handle signup
     const handleSignUp = async () => {
-        // Validate all fields
         const newErrors: Partial<Record<keyof typeof formData, string>> = {};
         Object.entries(formData).forEach(([field, value]) => {
             validateField(field as keyof typeof formData, value);
@@ -360,8 +324,6 @@ const SignUpPage: React.FC = () => {
                 { headers: { 'Content-Type': 'application/json' } }
             );
 
-            console.log('Signup response:', response.data);
-
             if (response.data.status === 'success') {
                 localStorage.setItem('user', JSON.stringify({
                     user_id: response.data.user_id,
@@ -395,8 +357,7 @@ const SignUpPage: React.FC = () => {
                             value={formData.name}
                             onChange={handleChange('name')}
                             placeholder="Enter your name"
-                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.name ? 'border-red-500' : 'border-gray-600'
-                                } focus:outline-none focus:border-pink-500`}
+                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.name ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
                         />
                         {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                     </div>
@@ -407,8 +368,7 @@ const SignUpPage: React.FC = () => {
                             value={formData.email}
                             onChange={handleChange('email')}
                             placeholder="Enter your email"
-                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.email ? 'border-red-500' : 'border-gray-600'
-                                } focus:outline-none focus:border-pink-500`}
+                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.email ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
                         />
                         {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                     </div>
@@ -421,56 +381,10 @@ const SignUpPage: React.FC = () => {
                             placeholder="Enter your phone number"
                             pattern="[0-9]*"
                             inputMode="numeric"
-                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.phone_number ? 'border-red-500' : 'border-gray-600'
-                                } focus:outline-none focus:border-pink-500`}
+                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.phone_number ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
                         />
                         {errors.phone_number && <p className="text-red-500 text-sm mt-1">{errors.phone_number}</p>}
                     </div>
-                    <div>
-                        <label className="block text-gray-300 mb-2">State</label>
-                        <select
-                            value={formData.state}
-                            onChange={handleChange('state')}
-                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.state ? 'border-red-500' : 'border-gray-600'
-                                } focus:outline-none focus:border-pink-500`}
-                        >
-                            <option value="">Select a state</option>
-                            {indianStates.map((state) => (
-                                <option key={state.value} value={state.value}>{state.label}</option>
-                            ))}
-                        </select>
-                        {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
-                    </div>
-                    <div>
-                        <label className="block text-gray-300 mb-2">City</label>
-                        <select
-                            value={formData.city}
-                            onChange={handleChange('city')}
-                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.city ? 'border-red-500' : 'border-gray-600'
-                                } focus:outline-none focus:border-pink-500`}
-                            disabled={!formData.state}
-                        >
-                            <option value="">Select a city</option>
-                            {availableCities.map((city) => (
-                                <option key={city.value} value={city.value}>{city.label}</option>
-                            ))}
-                        </select>
-                        {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
-                    </div>
-                    {formData.city === 'Other' && (
-                        <div>
-                            <label className="block text-gray-300 mb-2">Custom City</label>
-                            <input
-                                type="text"
-                                value={formData.custom_city}
-                                onChange={handleChange('custom_city')}
-                                placeholder="Enter your city"
-                                className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.custom_city ? 'border-red-500' : 'border-gray-600'
-                                    } focus:outline-none focus:border-pink-500`}
-                            />
-                            {errors.custom_city && <p className="text-red-500 text-sm mt-1">{errors.custom_city}</p>}
-                        </div>
-                    )}
                     <div>
                         <label className="block text-gray-300 mb-2">Password</label>
                         <input
@@ -478,8 +392,7 @@ const SignUpPage: React.FC = () => {
                             value={formData.password}
                             onChange={handleChange('password')}
                             placeholder="Enter your password"
-                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.password ? 'border-red-500' : 'border-gray-600'
-                                } focus:outline-none focus:border-pink-500`}
+                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.password ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
                         />
                         {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
                         {!errors.password && <p className="text-gray-400 text-sm mt-1">At least 8 characters</p>}
@@ -491,11 +404,54 @@ const SignUpPage: React.FC = () => {
                             value={formData.confirmPassword}
                             onChange={handleChange('confirmPassword')}
                             placeholder="Confirm your password"
-                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-600'
-                                } focus:outline-none focus:border-pink-500`}
+                            className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
                         />
                         {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
                     </div>
+                    <div className="flex space-x-4">
+                        <div className="w-1/2">
+                            <label className="block text-gray-300 mb-2">State</label>
+                            <select
+                                value={formData.state}
+                                onChange={handleChange('state')}
+                                className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.state ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
+                            >
+                                <option value="">Select a state</option>
+                                {indianStates.map((state) => (
+                                    <option key={state.value} value={state.value}>{state.label}</option>
+                                ))}
+                            </select>
+                            {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
+                        </div>
+                        <div className="w-1/2">
+                            <label className="block text-gray-300 mb-2">City</label>
+                            <select
+                                value={formData.city}
+                                onChange={handleChange('city')}
+                                className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.city ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
+                                disabled={!formData.state}
+                            >
+                                <option value="">Select a city</option>
+                                {availableCities.map((city) => (
+                                    <option key={city.value} value={city.value}>{city.label}</option>
+                                ))}
+                            </select>
+                            {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+                        </div>
+                    </div>
+                    {formData.city === 'Other' && (
+                        <div>
+                            <label className="block text-gray-300 mb-2">Custom City</label>
+                            <input
+                                type="text"
+                                value={formData.custom_city}
+                                onChange={handleChange('custom_city')}
+                                placeholder="Enter your city"
+                                className={`w-full p-2 rounded bg-gray-700 text-white border ${errors.custom_city ? 'border-red-500' : 'border-gray-600'} focus:outline-none focus:border-pink-500`}
+                            />
+                            {errors.custom_city && <p className="text-red-500 text-sm mt-1">{errors.custom_city}</p>}
+                        </div>
+                    )}
                     <div className="flex justify-end space-x-2">
                         <button
                             type="submit"

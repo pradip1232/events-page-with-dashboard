@@ -22,6 +22,9 @@ import ProfilePage from "./dashbaord/pages/ProfilePage";
 import { SettingsIcon } from "lucide-react";
 import SettingsPage from "./dashbaord/pages/SettingsPage";
 import YourTokenPage from "./dashbaord/pages/YourTokenPage";
+import PrivacyPolicy from "./screens/LandingPage/PrivacyPolicy";
+import TermsAndConditions from "./screens/LandingPage/TermsAndConditions";
+import RefundPolicy from "./screens/LandingPage/RefundPolicy";
 
 createRoot(document.getElementById("app") as HTMLElement).render(
   <StrictMode>
@@ -30,6 +33,13 @@ createRoot(document.getElementById("app") as HTMLElement).render(
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+
+        <Route path="privacy-and-policy" element={<PrivacyPolicy />} />
+        <Route path="term-and-conditions" element={<TermsAndConditions />} />
+        <Route path="refund-policy" element={<RefundPolicy />} />
+
+
+
 
         <Route element={<PrivateRoute />}>
           <Route path="/dashboard" element={<Dashboard />}>
